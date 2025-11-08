@@ -861,6 +861,7 @@ function handleGlobalKeydown(e: KeyboardEvent) {
   height: 100%;
   overflow: hidden;
   transition: width 0.2s ease;
+  background: linear-gradient(180deg, #f9fafb, #f3f4f6);
 }
 .aside-title {
   font-weight: 600;
@@ -875,6 +876,16 @@ function handleGlobalKeydown(e: KeyboardEvent) {
 .aside .el-menu-item {
   border-right: 0;
 }
+.aside .el-menu { background: transparent; padding: 8px 4px; }
+.aside .el-menu-item { height: 34px; line-height: 34px; padding: 0 12px; font-size: 13px; margin: 4px 8px; border-radius: 8px; position: relative; transition: background 0.15s ease, color 0.15s ease; }
+.aside .el-menu-item:hover { background: rgba(0, 0, 0, 0.04); }
+.aside .el-menu-item.is-active { background: #eef2ff; color: #1f2937; }
+.aside .el-menu-item.is-active::before { content: ''; position: absolute; left: 0; top: 6px; bottom: 6px; width: 3px; border-radius: 2px; background: #6366f1; }
+.aside .el-menu-item.is-active .el-icon { color: #4f46e5; }
+.aside .el-menu-item:focus-visible { outline: 2px solid #93c5fd; outline-offset: 2px; }
+.aside.collapsed .el-menu { padding: 8px 0; }
+.aside.collapsed .el-menu-item { padding: 0 10px; margin: 6px; justify-content: center; }
+.aside.collapsed .el-menu-item.is-active::before { left: 0; top: 4px; bottom: 4px; width: 2px; }
 .aside .el-menu { padding: 6px 0; }
 .aside .el-menu-item { height: 34px; line-height: 34px; padding: 0 12px; font-size: 13px; }
 .aside .el-menu-item span {
