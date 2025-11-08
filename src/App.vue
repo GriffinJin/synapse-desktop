@@ -18,6 +18,10 @@
             <el-icon><Collection /></el-icon>
             <span>Maven</span>
           </el-menu-item>
+          <el-menu-item index="env">
+            <el-icon><Setting /></el-icon>
+            <span>Environments</span>
+          </el-menu-item>
         </el-menu>
       </el-aside>
 
@@ -94,6 +98,33 @@
             </template>
           </el-dialog>
         </template>
+
+        <template v-if="activeMenu === 'env'">
+          <div class="section-header">
+            <h2>Environments</h2>
+            <span class="muted">Show versions of Java, Python, and Maven</span>
+          </div>
+          <div class="env-grid">
+            <div class="env-item">
+              <div class="env-label">Java</div>
+              <div class="env-value">{{ envJavaText }}</div>
+            </div>
+            <div class="env-item">
+              <div class="env-label">Python</div>
+              <div class="env-value">{{ envPythonText }}</div>
+            </div>
+            <div class="env-item">
+              <div class="env-label">Maven</div>
+              <div class="env-value">{{ envMavenText }}</div>
+            </div>
+          </div>
+          <div class="toolbar" style="margin-top: 12px;">
+            <div></div>
+            <div class="toolbar-actions">
+              <el-button @click="refreshEnv" type="primary">Refresh</el-button>
+            </div>
+          </div>
+        </template>
       </el-main>
     </el-container>
     <el-footer height="22px" class="statusbar">
@@ -107,7 +138,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue';
 import { ElMessage } from 'element-plus';
-import { Collection, Fold, Expand } from '@element-plus/icons-vue';
+import { Collection, Fold, Expand, Setting } from '@element-plus/icons-vue';
 
 type FileMeta = {
   name: string;
@@ -202,6 +233,8 @@ onMounted(async () => {
   if ((window as any).system) {
     await refreshStats();
     setInterval(refreshStats, 1000);
+    // Preload environment versions for Environments page
+    await refreshEnv();
   }
 });
 
@@ -251,6 +284,32 @@ const memText = computed(() => {
   const used = toGB(s.memory.usedBytes);
   const total = toGB(s.memory.totalBytes);
   return `Mem: ${used.toFixed(1)} / ${total.toFixed(1)} GB (${s.memory.percent.toFixed(0)}%)`;
+});
+
+// Environment versions (English-only comments)
+type EnvVersions = { java: string | null; python: string | null; mvn: string | null };
+const envVersions = ref<EnvVersions | null>(null);
+
+async function refreshEnv() {
+  try {
+    const v = await (window as any).system.getEnvVersions();
+    envVersions.value = v;
+  } catch {
+    // Ignore errors silently
+  }
+}
+
+const envJavaText = computed(() => {
+  const v = envVersions.value?.java;
+  return v ? `Java ${v}` : 'Java: Not found';
+});
+const envPythonText = computed(() => {
+  const v = envVersions.value?.python;
+  return v ? `Python ${v}` : 'Python: Not found';
+});
+const envMavenText = computed(() => {
+  const v = envVersions.value?.mvn;
+  return v ? `Maven ${v}` : 'Maven: Not found';
 });
 </script>
 
@@ -364,6 +423,24 @@ const memText = computed(() => {
 .main-scroll {
   height: 100%;
   overflow: auto;
+}
+.env-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+.env-item {
+  border: 1px solid #eee;
+  border-radius: 6px;
+  padding: 10px 12px;
+  background: #fafafa;
+}
+.env-label {
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+.env-value {
+  color: #333;
 }
 .statusbar {
   border-top: 1px solid #eee;

@@ -16,4 +16,6 @@ contextBridge.exposeInMainWorld('m2', {
 contextBridge.exposeInMainWorld('system', {
   // Get OS, CPU usage, and memory usage
   getStats: async () => ipcRenderer.invoke('system:get-stats'),
+  // Get environment versions of java, python, and mvn
+  getEnvVersions: async () => ipcRenderer.invoke('system:get-env-versions'),
 });

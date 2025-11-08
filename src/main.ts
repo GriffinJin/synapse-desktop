@@ -1,4 +1,5 @@
 import { app, BrowserWindow, ipcMain } from 'electron';
+import { execFile } from 'node:child_process';
 import path from 'node:path';
 import started from 'electron-squirrel-startup';
 
@@ -136,6 +137,70 @@ ipcMain.handle('system:get-stats', async () => {
     cpu: { percent: cpuPercent },
     memory: { usedBytes, totalBytes, percent: memPercent },
   };
+});
+
+// Environment versions: Java, Python, Maven (English-only comments)
+function execFileSafe(cmd: string, args: string[], timeoutMs = 3000): Promise<{ stdout: string; stderr: string } | null> {
+  return new Promise((resolve) => {
+    try {
+      // Augment PATH to include common Homebrew locations on macOS
+      const augmentedPath = [process.env.PATH || '', '/usr/local/bin', '/opt/homebrew/bin']
+        .filter(Boolean)
+        .join(path.delimiter);
+      execFile(cmd, args, { timeout: timeoutMs, env: { ...process.env, PATH: augmentedPath } }, (_error, stdout, stderr) => {
+        // Even if the command exits with error, version strings may still be printed
+        resolve({ stdout, stderr });
+      });
+    } catch {
+      resolve(null);
+    }
+  });
+}
+
+function parseJavaVersion(out: string) {
+  // Typical outputs: 'java version "17.0.9"' or 'openjdk version "17.0.9"'
+  const m = out.match(/version\s+"([^"]+)"/i);
+  if (m && m[1]) return m[1];
+  // Fallback: first number sequence
+  const n = out.match(/(\d+\.\d+(?:\.\d+)?)/);
+  return n ? n[1] : null;
+}
+
+function parsePythonVersion(out: string) {
+  // Typical output: 'Python 3.11.6'
+  const m = out.match(/Python\s+([\d.]+)/i);
+  return m ? m[1] : null;
+}
+
+function parseMavenVersion(out: string) {
+  // Typical output first line: 'Apache Maven 3.9.6'
+  const m = out.match(/Apache Maven\s+([\d.]+)/i);
+  return m ? m[1] : null;
+}
+
+ipcMain.handle('system:get-env-versions', async () => {
+  // Java: prefer stderr content
+  const javaRes = await execFileSafe('java', ['-version']);
+  const javaOut = javaRes ? (javaRes.stderr || javaRes.stdout || '') : '';
+  const java = javaOut ? parseJavaVersion(javaOut) : null;
+
+  // Python: try python3 then python
+  let python: string | null = null;
+  const py3 = await execFileSafe('python3', ['--version']);
+  const py3Out = py3 ? (py3.stdout || py3.stderr || '') : '';
+  python = py3Out ? parsePythonVersion(py3Out) : null;
+  if (!python) {
+    const py = await execFileSafe('python', ['--version']);
+    const pyOut = py ? (py.stdout || py.stderr || '') : '';
+    python = pyOut ? parsePythonVersion(pyOut) : null;
+  }
+
+  // Maven
+  const mvnRes = await execFileSafe('mvn', ['-v']);
+  const mvnOut = mvnRes ? (mvnRes.stdout || mvnRes.stderr || '') : '';
+  const mvn = mvnOut ? parseMavenVersion(mvnOut) : null;
+
+  return { java, python, mvn };
 });
 
 // Handle creating/removing shortcuts on Windows when installing/uninstalling.

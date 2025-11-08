@@ -24,6 +24,7 @@ declare global {
     };
     system: {
       getStats: () => Promise<SystemStats>;
+      getEnvVersions: () => Promise<{ java: string | null; python: string | null; mvn: string | null }>;
     };
   }
 }
@@ -53,6 +54,7 @@ declare global {
     };
     system: {
       getStats: () => Promise<SystemStats>;
+      getEnvVersions: () => Promise<{ java: string | null; python: string | null; mvn: string | null }>;
     };
   }
 }
