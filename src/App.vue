@@ -152,15 +152,56 @@
         </div>
       </div>
     </el-container>
-    <el-footer height="22px" class="statusbar">
-      <div class="status-item">{{ osText }}</div>
-      <div class="status-item">{{ cpuText }}</div>
-      <div class="status-item">{{ memText }}</div>
-      <div class="status-actions no-drag">
-        <el-button size="small" type="text" @click="openShortcuts" :title="'Show keyboard shortcuts'">
-          <el-icon><List /></el-icon>
-          <span class="shortcut-text">Shortcuts</span>
-        </el-button>
+    <el-footer height="28px" class="statusbar">
+      <div class="status-left">
+        <!-- OS Chip -->
+        <span class="status-chip">
+          <el-icon><Monitor /></el-icon>
+          <span class="chip-text">{{ osText }}</span>
+        </span>
+        <span class="status-sep">•</span>
+        <!-- CPU Chip with threshold coloring and details popover -->
+        <el-popover trigger="click" placement="top" width="260">
+          <template #reference>
+            <span :class="['status-chip', cpuStatusClass]">
+              <el-icon><Cpu /></el-icon>
+              <span class="chip-text">{{ cpuText }}</span>
+            </span>
+          </template>
+          <div class="popover-content">
+            <div class="popover-title">CPU Usage</div>
+            <el-progress :percentage="cpuPercentDisplay" :status="cpuPercentDisplay > 80 ? 'warning' : 'success'" />
+            <div class="popover-meta">Current: {{ cpuPercentDisplay }}%</div>
+          </div>
+        </el-popover>
+        <span class="status-sep">•</span>
+        <!-- Memory Chip with mini meter and details popover -->
+        <el-popover trigger="click" placement="top" width="280">
+          <template #reference>
+            <span :class="['status-chip', memStatusClass]">
+              <el-icon><TrendCharts /></el-icon>
+              <span class="chip-text">{{ memText }}</span>
+              <span class="mini-meter">
+                <span class="mini-meter-fill" :style="{ width: memMeterWidth, backgroundColor: memColor }" />
+              </span>
+            </span>
+          </template>
+          <div class="popover-content">
+            <div class="popover-title">Memory Usage</div>
+            <el-progress :percentage="memPercentDisplay" :status="memPercentDisplay > 80 ? 'warning' : 'success'" />
+            <div class="popover-meta">Used: {{ memUsedGB }} GB</div>
+            <div class="popover-meta">Total: {{ memTotalGB }} GB</div>
+            <div class="popover-meta">Percent: {{ memPercentDisplay }}%</div>
+          </div>
+        </el-popover>
+      </div>
+      <div class="status-right no-drag">
+        <el-tooltip content="Keyboard Shortcuts" placement="top">
+          <el-button class="shortcut-btn" size="small" type="text" @click="openShortcuts" :title="'Show keyboard shortcuts'">
+            <el-icon><ArrowLeft /></el-icon>
+            <span class="shortcut-text">Shortcuts</span>
+          </el-button>
+        </el-tooltip>
       </div>
     </el-footer>
     <!-- Quick Search dialog (English-only comments) -->
@@ -244,7 +285,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue';
 import { ElMessage } from 'element-plus';
-import { Collection, Fold, Expand, Setting, Search, Close, List } from '@element-plus/icons-vue';
+import { Collection, Fold, Expand, Setting, Search, Close, List, Monitor, Cpu, TrendCharts, ArrowLeft } from '@element-plus/icons-vue';
 
 type FileMeta = {
   name: string;
@@ -406,6 +447,34 @@ const memText = computed(() => {
   return `Mem: ${used.toFixed(1)} / ${total.toFixed(1)} GB (${s.memory.percent.toFixed(0)}%)`;
 });
 
+// Threshold-based UI helpers for CPU & Memory
+const cpuPercent = computed(() => stats.value?.cpu.percent ?? null);
+const memPercent = computed(() => stats.value?.memory.percent ?? null);
+
+const cpuPercentDisplay = computed(() => {
+  const p = cpuPercent.value;
+  return p == null ? 0 : Math.max(0, Math.min(100, Math.round(p)));
+});
+const memPercentDisplay = computed(() => {
+  const p = memPercent.value;
+  return p == null ? 0 : Math.max(0, Math.min(100, Math.round(p)));
+});
+
+const cpuStatusClass = computed(() => (cpuPercentDisplay.value > 80 ? 'metric-warn' : 'metric-ok'));
+const memStatusClass = computed(() => (memPercentDisplay.value > 80 ? 'metric-warn' : 'metric-ok'));
+
+const memMeterWidth = computed(() => `${memPercentDisplay.value}%`);
+const memColor = computed(() => (memPercentDisplay.value > 80 ? '#f59e0b' : '#10b981'));
+
+const memUsedGB = computed(() => {
+  const s = stats.value;
+  return s ? toGB(s.memory.usedBytes).toFixed(1) : '…';
+});
+const memTotalGB = computed(() => {
+  const s = stats.value;
+  return s ? toGB(s.memory.totalBytes).toFixed(1) : '…';
+});
+
 // Environment versions (English-only comments)
 type EnvVersions = { java: string | null; python: string | null; mvn: string | null };
 const envVersions = ref<EnvVersions | null>(null);
@@ -499,11 +568,13 @@ function handleGlobalKeydown(e: KeyboardEvent) {
 .titlebar {
   /* Make the entire header draggable like a native title bar */
   -webkit-app-region: drag;
-  border-bottom: 1px solid #eee;
+  border-bottom: none;
   position: sticky;
   top: 0;
   z-index: 1000;
   box-sizing: border-box;
+  background: linear-gradient(90deg, #3b82f6 0%, #8b5cf6 100%);
+  color: #fff;
 }
 .titlebar-inner {
   display: grid;
@@ -529,18 +600,25 @@ function handleGlobalKeydown(e: KeyboardEvent) {
 }
 .settings-text {
   font-size: 13px;
+  color: #fff;
 }
 .search-input .el-input__wrapper {
   height: 34px;
   border-radius: 17px;
+  background: rgba(255, 255, 255, 0.18);
+  border-color: transparent;
+  box-shadow: none;
 }
+.search-input .el-input__inner { color: #fff; }
+.search-input .el-input__inner::placeholder { color: rgba(255, 255, 255, 0.85); }
 .kbd-hint {
   display: inline-block;
   padding: 0 6px;
-  border: 1px solid #ddd;
+  border: 1px solid rgba(255, 255, 255, 0.6);
   border-bottom-width: 2px;
   border-radius: 4px;
-  color: #666;
+  color: rgba(255, 255, 255, 0.9);
+  background: rgba(255, 255, 255, 0.12);
   font-size: 12px;
   line-height: 18px;
 }
@@ -550,6 +628,7 @@ function handleGlobalKeydown(e: KeyboardEvent) {
 }
 .brand {
   font-weight: 600;
+  color: #fff;
 }
 .aside {
   border-right: 0; /* use el-aside to render the single separator line */
@@ -592,6 +671,9 @@ function handleGlobalKeydown(e: KeyboardEvent) {
   pointer-events: none;
   transition: left 0.2s ease, opacity 0.15s ease-in-out;
 }
+/* Icons and action buttons should be readable on gradient */
+.titlebar .el-icon { color: #fff; }
+.titlebar-actions .el-button { color: #fff; }
 .section-header {
   display: flex;
   align-items: baseline;
@@ -672,7 +754,7 @@ function handleGlobalKeydown(e: KeyboardEvent) {
 }
 .statusbar {
   border-top: 1px solid #eee;
-  background: #fafafa;
+  background: #f5f5f5; /* light gray background for footer status bar */
   font-size: 12px;
   color: #666;
   display: flex;
@@ -680,14 +762,62 @@ function handleGlobalKeydown(e: KeyboardEvent) {
   gap: 16px;
   padding: 0 8px;
 }
-.status-item {
-  line-height: 22px;
+.status-left { display: flex; align-items: center; gap: 8px; }
+.status-right { margin-left: auto; display: flex; align-items: center; }
+.status-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 8px;
+  border: 1px solid #eaeaea;
+  border-radius: 12px;
+  background: #fff;
+  color: #333;
 }
-.status-actions {
-  margin-left: auto;
+.chip-text { line-height: 24px; }
+.status-sep { color: #999; }
+.statusbar :deep(.el-icon) { color: #666; }
+.statusbar :deep(.el-button) { color: #666; }
+
+/* Mini meter inside memory chip */
+.mini-meter {
+  width: 80px;
+  height: 6px;
+  border-radius: 3px;
+  background: #f1f5f9;
+  overflow: hidden;
+  display: inline-block;
 }
+.mini-meter-fill {
+  display: block;
+  height: 100%;
+  width: 0%;
+  transition: width 0.25s ease;
+}
+
+/* Threshold coloring for chip text */
+.metric-warn .chip-text { color: #d97706; }
+.metric-ok .chip-text { color: #333; }
+
+/* Popover content */
+.popover-content { display: grid; gap: 6px; }
+.popover-title { font-weight: 600; font-size: 13px; }
+.popover-meta { font-size: 12px; color: #666; }
 .shortcut-text {
   font-size: 12px;
+}
+.shortcut-btn .shortcut-text {
+  max-width: 0;
+  opacity: 0;
+  margin-left: 0;
+  transition: max-width 0.2s ease, opacity 0.2s ease, margin 0.2s ease;
+  overflow: hidden;
+  white-space: nowrap;
+}
+.shortcut-btn:hover .shortcut-text {
+  max-width: 120px;
+  opacity: 1;
+  margin-left: 6px;
 }
 .shortcut-list {
   display: grid;
