@@ -12,8 +12,8 @@
 
     <el-container class="content-container">
       <!-- Sidebar: single-level menu with icons -->
-      <el-aside :width="isAsideCollapsed ? '64px' : '220px'" class="aside">
-        <el-menu :default-active="activeMenu" @select="onSelectMenu" :collapse="isAsideCollapsed">
+      <el-aside :width="isAsideCollapsed ? '64px' : '220px'" :class="['aside', { collapsed: isAsideCollapsed }]">
+        <el-menu :default-active="activeMenu" @select="onSelectMenu">
           <el-menu-item index="maven">
             <el-icon><Collection /></el-icon>
             <span>Maven</span>
@@ -96,6 +96,11 @@
         </template>
       </el-main>
     </el-container>
+    <el-footer height="22px" class="statusbar">
+      <div class="status-item">{{ osText }}</div>
+      <div class="status-item">{{ cpuText }}</div>
+      <div class="status-item">{{ memText }}</div>
+    </el-footer>
   </el-container>
 </template>
 
@@ -193,6 +198,59 @@ async function submitAdd() {
 
 onMounted(async () => {
   await refresh();
+  // Start status bar updates if system API is available
+  if ((window as any).system) {
+    await refreshStats();
+    setInterval(refreshStats, 1000);
+  }
+});
+
+// System stats for status bar (English-only comments)
+type SystemStats = {
+  os: { platform: string; release: string; arch: string };
+  cpu: { percent: number | null };
+  memory: { usedBytes: number; totalBytes: number; percent: number };
+};
+
+const stats = ref<SystemStats | null>(null);
+
+function platformName(p: string) {
+  if (p === 'darwin') return 'macOS';
+  if (p === 'win32') return 'Windows';
+  if (p === 'linux') return 'Linux';
+  return p;
+}
+
+async function refreshStats() {
+  try {
+    const s = await (window as any).system.getStats();
+    stats.value = s;
+  } catch {
+    // Silently ignore status errors
+  }
+}
+
+const osText = computed(() => {
+  const s = stats.value;
+  if (!s) return 'OS: …';
+  return `OS: ${platformName(s.os.platform)} ${s.os.release} ${s.os.arch}`;
+});
+
+const cpuText = computed(() => {
+  const p = stats.value?.cpu.percent;
+  return p == null ? 'CPU: …' : `CPU: ${p.toFixed(0)}%`;
+});
+
+function toGB(bytes: number) {
+  return bytes / (1024 * 1024 * 1024);
+}
+
+const memText = computed(() => {
+  const s = stats.value;
+  if (!s) return 'Mem: …';
+  const used = toGB(s.memory.usedBytes);
+  const total = toGB(s.memory.totalBytes);
+  return `Mem: ${used.toFixed(1)} / ${total.toFixed(1)} GB (${s.memory.percent.toFixed(0)}%)`;
 });
 </script>
 
@@ -226,6 +284,25 @@ onMounted(async () => {
   border-right: 1px solid #eee;
   height: 100%;
   overflow: hidden;
+  transition: width 0.2s ease;
+}
+.aside .el-menu-item span {
+  display: inline-block;
+  white-space: nowrap;
+  overflow: hidden;
+  transition: opacity 0.2s ease, max-width 0.2s ease, margin 0.2s ease;
+}
+.aside.collapsed .el-menu-item span {
+  opacity: 0;
+  max-width: 0;
+  margin: 0;
+}
+.aside .el-menu-item .el-icon {
+  margin-right: 8px;
+  transition: margin 0.2s ease;
+}
+.aside.collapsed .el-menu-item .el-icon {
+  margin-right: 0;
 }
 .aside-toggle {
   position: absolute;
@@ -234,7 +311,7 @@ onMounted(async () => {
   z-index: 500;
   opacity: 0;
   pointer-events: none;
-  transition: opacity 0.15s ease-in-out;
+  transition: left 0.2s ease, opacity 0.15s ease-in-out;
 }
 .section-header {
   display: flex;
@@ -287,5 +364,18 @@ onMounted(async () => {
 .main-scroll {
   height: 100%;
   overflow: auto;
+}
+.statusbar {
+  border-top: 1px solid #eee;
+  background: #fafafa;
+  font-size: 12px;
+  color: #666;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 0 8px;
+}
+.status-item {
+  line-height: 22px;
 }
 </style>

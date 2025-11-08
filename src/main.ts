@@ -96,6 +96,48 @@ ipcMain.handle('m2:create-file', async (_event, fileName: string, content?: stri
   return true;
 });
 
+// System stats: OS, CPU usage (system-wide), memory (English-only comments)
+let prevCpuInfo: ReturnType<typeof os.cpus> | null = null;
+function cpuTotals(infos: ReturnType<typeof os.cpus>) {
+  let idle = 0;
+  let total = 0;
+  for (const info of infos) {
+    const t = info.times;
+    idle += t.idle;
+    total += t.user + t.nice + t.sys + t.idle + t.irq;
+  }
+  return { idle, total };
+}
+
+ipcMain.handle('system:get-stats', async () => {
+  const platform = os.platform();
+  const release = os.release();
+  const arch = os.arch();
+
+  const nowInfo = os.cpus();
+  let cpuPercent: number | null = null;
+  if (prevCpuInfo) {
+    const prev = cpuTotals(prevCpuInfo);
+    const now = cpuTotals(nowInfo);
+    const idleDelta = now.idle - prev.idle;
+    const totalDelta = now.total - prev.total;
+    cpuPercent = totalDelta > 0 ? (100 * (1 - idleDelta / totalDelta)) : null;
+  }
+  // Store current snapshot for next call
+  prevCpuInfo = nowInfo;
+
+  const totalBytes = os.totalmem();
+  const freeBytes = os.freemem();
+  const usedBytes = totalBytes - freeBytes;
+  const memPercent = (usedBytes / totalBytes) * 100;
+
+  return {
+    os: { platform, release, arch },
+    cpu: { percent: cpuPercent },
+    memory: { usedBytes, totalBytes, percent: memPercent },
+  };
+});
+
 // Handle creating/removing shortcuts on Windows when installing/uninstalling.
 if (started) {
   app.quit();

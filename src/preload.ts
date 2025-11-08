@@ -11,3 +11,9 @@ contextBridge.exposeInMainWorld('m2', {
   // Create a new XML file under ~/.m2/config
   createFile: async (fileName: string, content?: string) => ipcRenderer.invoke('m2:create-file', fileName, content),
 });
+
+// Expose system stats API (English-only comments)
+contextBridge.exposeInMainWorld('system', {
+  // Get OS, CPU usage, and memory usage
+  getStats: async () => ipcRenderer.invoke('system:get-stats'),
+});
