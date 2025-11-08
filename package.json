@@ -39,6 +39,7 @@
   },
   "dependencies": {
     "electron-squirrel-startup": "^1.0.1",
+    "element-plus": "^2.11.7",
     "vue": "^3.5.24"
   }
 }
