@@ -58,12 +58,13 @@
           <div class="section-header">
             <h2>Workspace</h2>
             <span class="muted">Select a directory to discover Git repositories</span>
-            <div class="header-actions">
-              <el-radio-group v-model="workspaceViewMode" size="small">
-                <el-radio-button label="collapse">Panels</el-radio-button>
-                <el-radio-button label="table">Table</el-radio-button>
-              </el-radio-group>
-            </div>
+          </div>
+
+          <div class="subnav">
+            <el-tabs v-model="workspaceViewMode">
+              <el-tab-pane label="Operations" name="operations" />
+              <el-tab-pane label="Details" name="details" />
+            </el-tabs>
           </div>
 
           <div class="workspace-body" v-loading="scanning" element-loading-text="Scanning repositories..." element-loading-background="rgba(255,255,255,0.6)">
@@ -79,7 +80,7 @@
             </div>
 
           <template v-if="repos.length">
-            <el-collapse v-if="workspaceViewMode === 'collapse'" v-model="activeRepoPanels">
+            <el-collapse v-if="workspaceViewMode === 'details'" v-model="activeRepoPanels">
               <el-collapse-item
                 v-for="repo in repos"
                 :key="repo.path"
@@ -136,7 +137,7 @@
                   </div>
                 </template>
               </el-table-column>
-              <el-table-column label="Actions" width="140">
+              <el-table-column label="Operations" width="160">
                 <template #default="{ row }">
                   <el-button size="small" type="primary" plain @click="openRepoDetails(row.path)">Details</el-button>
                 </template>
@@ -674,7 +675,7 @@ const workspaceRoot = ref<string>('');
 const repos = ref<RepoInfo[]>([]);
 const scanning = ref(false);
 const activeRepoPanels = ref<string[]>([]);
-const workspaceViewMode = ref<'collapse' | 'table'>('table');
+const workspaceViewMode = ref<'details' | 'operations'>('operations');
 
 async function chooseWorkspaceRoot() {
   try {
@@ -717,7 +718,7 @@ async function scanWorkspace() {
 
 // Navigate to collapse view and expand specific repository panel (English-only comment)
 function openRepoDetails(repoPath: string) {
-  workspaceViewMode.value = 'collapse';
+  workspaceViewMode.value = 'details';
   activeRepoPanels.value = [repoPath];
 }
 
@@ -808,7 +809,7 @@ function handleGlobalKeydown(e: KeyboardEvent) {
   top: 0;
   z-index: 1000;
   box-sizing: border-box;
-  background: linear-gradient(90deg, var(--el-color-primary) 0%, var(--el-color-primary-dark-2) 100%);
+  background: linear-gradient(90deg, #3b82f6 0%, #8b5cf6 100%);
   color: #fff;
 }
 .titlebar-inner {
@@ -934,6 +935,10 @@ function handleGlobalKeydown(e: KeyboardEvent) {
   align-items: baseline;
   gap: 12px;
   margin-bottom: 12px;
+}
+.subnav {
+  padding: 0 12px;
+  margin-bottom: 8px;
 }
 .muted {
   color: #888;
