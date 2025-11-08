@@ -15,9 +15,11 @@
           </el-input>
         </div>
         <div class="titlebar-actions no-drag">
-          <el-button class="settings-btn" type="text" @click="openSettings" :title="'Open settings'">
+          <el-button class="icon-btn" type="text" @click="openNotifications" :title="'Notifications'">
+            <el-icon><Bell /></el-icon>
+          </el-button>
+          <el-button class="icon-btn settings-btn" type="text" @click="openSettings" :title="'Open settings'">
             <el-icon><Setting /></el-icon>
-            <span class="settings-text">Settings</span>
           </el-button>
         </div>
       </div>
@@ -27,6 +29,10 @@
       <!-- Sidebar: single-level menu with icons -->
       <el-aside :width="isAsideCollapsed ? '64px' : '220px'" :class="['aside', { collapsed: isAsideCollapsed }]">
         <el-menu :default-active="activeMenu" @select="onSelectMenu">
+          <el-menu-item index="workspace">
+            <el-icon><Folder /></el-icon>
+            <span>Workspace</span>
+          </el-menu-item>
           <el-menu-item index="maven">
             <el-icon><Collection /></el-icon>
             <span>Maven</span>
@@ -48,7 +54,99 @@
 
       <!-- Main content -->
       <el-main class="main-scroll">
-        <template v-if="activeMenu === 'maven'">
+        <template v-if="activeMenu === 'workspace'">
+          <div class="section-header">
+            <h2>Workspace</h2>
+            <span class="muted">Select a directory to discover Git repositories</span>
+            <div class="header-actions">
+              <el-radio-group v-model="workspaceViewMode" size="small">
+                <el-radio-button label="collapse">Panels</el-radio-button>
+                <el-radio-button label="table">Table</el-radio-button>
+              </el-radio-group>
+            </div>
+          </div>
+
+          <div class="workspace-body" v-loading="scanning" element-loading-text="Scanning repositories..." element-loading-background="rgba(255,255,255,0.6)">
+
+            <div class="toolbar">
+              <div class="toolbar-left">
+                <el-input v-model="workspaceRoot" placeholder="Choose a root directory" readonly class="toolbar-search" />
+              </div>
+              <div class="toolbar-actions">
+              <el-button @click="chooseWorkspaceRoot" :disabled="scanning">Choose Directory</el-button>
+              <el-button type="primary" @click="scanWorkspace" :disabled="!workspaceRoot || scanning" :loading="scanning">Scan</el-button>
+              </div>
+            </div>
+
+          <template v-if="repos.length">
+            <el-collapse v-if="workspaceViewMode === 'collapse'" v-model="activeRepoPanels">
+              <el-collapse-item
+                v-for="repo in repos"
+                :key="repo.path"
+                :name="repo.path"
+              >
+                <template #title>
+                  <div class="repo-summary">
+                    <div class="repo-title">{{ repo.name }}</div>
+                    <div class="repo-meta">
+                      <span class="repo-branch">Branch: {{ repo.branch || 'unknown' }}</span>
+                      <span class="status-sep">|</span>
+                      <span class="repo-path">{{ repo.path }}</span>
+                    </div>
+                    <div class="repo-flags">
+                      <span v-if="repo.unstaged" class="repo-flag flag-unstaged">Unstaged</span>
+                      <span v-if="repo.ahead" class="repo-flag flag-ahead">Ahead</span>
+                      <span v-if="repo.behind" class="repo-flag flag-behind">Behind</span>
+                      <span v-if="!repo.unstaged && !repo.ahead && !repo.behind" class="repo-flag flag-clean">Clean</span>
+                    </div>
+                  </div>
+                </template>
+                <div class="repo-detail">
+                  <div class="repo-detail-row"><span class="label">Repository</span><span class="value">{{ repo.name }}</span></div>
+                  <div class="repo-detail-row"><span class="label">Path</span><span class="value">{{ repo.path }}</span></div>
+                  <div class="repo-detail-row"><span class="label">Branch</span><span class="value">{{ repo.branch || 'unknown' }}</span></div>
+                  <div class="repo-detail-row"><span class="label">Status</span><span class="value">
+                    <span v-if="repo.unstaged" class="repo-flag flag-unstaged">Unstaged</span>
+                    <span v-if="repo.ahead" class="repo-flag flag-ahead">Ahead</span>
+                    <span v-if="repo.behind" class="repo-flag flag-behind">Behind</span>
+                    <span v-if="!repo.unstaged && !repo.ahead && !repo.behind" class="repo-flag flag-clean">Clean</span>
+                  </span></div>
+                </div>
+              </el-collapse-item>
+            </el-collapse>
+            <el-table v-else :data="repos" border>
+              <el-table-column prop="name" label="Repository" min-width="200" />
+              <el-table-column label="Origin" min-width="320">
+                <template #default="{ row }">
+                  <span>{{ row.origin || 'no remote' }}</span>
+                </template>
+              </el-table-column>
+              <el-table-column prop="branch" label="Branch" width="160">
+                <template #default="{ row }">
+                  <span>{{ row.branch || 'unknown' }}</span>
+                </template>
+              </el-table-column>
+              <el-table-column label="Status" min-width="220">
+                <template #default="{ row }">
+                  <div class="repo-flags">
+                    <span v-if="row.unstaged" class="repo-flag flag-unstaged">Unstaged</span>
+                    <span v-if="row.ahead" class="repo-flag flag-ahead">Ahead</span>
+                    <span v-if="row.behind" class="repo-flag flag-behind">Behind</span>
+                    <span v-if="!row.unstaged && !row.ahead && !row.behind" class="repo-flag flag-clean">Clean</span>
+                  </div>
+                </template>
+              </el-table-column>
+              <el-table-column label="Actions" width="140">
+                <template #default="{ row }">
+                  <el-button size="small" type="primary" plain @click="openRepoDetails(row.path)">Details</el-button>
+                </template>
+              </el-table-column>
+            </el-table>
+          </template>
+          <el-empty v-else description="No repositories found" />
+          </div>
+        </template>
+        <template v-else-if="activeMenu === 'maven'">
           <div class="section-header">
             <h2>Maven Config Files (~/.m2/config)</h2>
             <span class="muted">Preview is enabled for .xml files</span>
@@ -151,6 +249,8 @@
           <el-empty description="Settings page (coming soon)" />
         </div>
       </div>
+      <!-- Notifications overlay covering sidebar and main -->
+      
     </el-container>
     <el-footer height="28px" class="statusbar">
       <div class="status-left">
@@ -279,13 +379,34 @@
         </div>
       </div>
     </el-drawer>
+
+    <!-- Notifications drawer (slides in from right) -->
+    <el-drawer v-model="notificationsOpen" title="Notifications" direction="rtl" size="420px">
+      <div class="notifications-toolbar">
+        <div class="notifications-actions">
+          <el-button size="small" @click="clearNotifications">Clear</el-button>
+        </div>
+      </div>
+      <div v-if="notifications.length === 0">
+        <el-empty description="No notifications" />
+      </div>
+      <div v-else class="notifications-list">
+        <div v-for="n in notifications" :key="n.id" class="notification-item" :class="['lvl-' + (n.level || 'info')]">
+          <div class="notif-row">
+            <div class="notif-title">{{ n.title }}</div>
+            <div class="notif-meta">{{ n.time }}</div>
+          </div>
+          <div class="notif-message">{{ n.message }}</div>
+        </div>
+      </div>
+    </el-drawer>
   </el-container>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue';
-import { ElMessage } from 'element-plus';
-import { Collection, Fold, Expand, Setting, Search, Close, List, Monitor, Cpu, TrendCharts, ArrowLeft } from '@element-plus/icons-vue';
+import { ElMessage, ElNotification } from 'element-plus';
+import { Collection, Fold, Expand, Setting, Search, Close, List, Monitor, Cpu, TrendCharts, ArrowLeft, Folder, Bell } from '@element-plus/icons-vue';
 
 type FileMeta = {
   name: string;
@@ -296,7 +417,7 @@ type FileMeta = {
 };
 
 const activeTop = ref('home');
-const activeMenu = ref('maven');
+const activeMenu = ref('workspace');
 const files = ref<FileMeta[]>([]);
 const content = ref('');
 const previewVisible = ref(false);
@@ -309,6 +430,44 @@ const asideWidth = computed(() => (isAsideCollapsed.value ? 64 : 220));
 const settingsOpen = ref(false);
 function openSettings() { settingsOpen.value = true; }
 function closeSettings() { settingsOpen.value = false; }
+
+// Notifications: state and helpers (English-only comments)
+type NotificationItem = { id: string; title: string; message: string; level?: 'info' | 'warning' | 'error' | 'success'; time: string };
+const notificationsOpen = ref(false);
+const notifications = ref<NotificationItem[]>([]);
+function openNotifications() { notificationsOpen.value = true; }
+function closeNotifications() { notificationsOpen.value = false; }
+function clearNotifications() { notifications.value = []; }
+
+// Helper to add notification into the right-side drawer (English-only comments)
+function addNotification(title: string, message: string, level: 'info' | 'warning' | 'error' | 'success' = 'info') {
+  const now = new Date();
+  notifications.value.unshift({
+    id: `${now.getTime()}-${Math.random().toString(36).slice(2)}`,
+    title,
+    message,
+    level,
+    time: now.toLocaleString(),
+  });
+}
+
+onMounted(() => {
+  // Subscribe to system notifications if preload exposes a channel
+  const api: any = (window as any).notify;
+  if (api && typeof api.on === 'function') {
+    api.on((payload: any) => {
+      addNotification(
+        payload?.title || 'Message',
+        payload?.message ? String(payload.message) : JSON.stringify(payload),
+        (payload?.level || 'info')
+      );
+    });
+  }
+});
+onUnmounted(() => {
+  const api: any = (window as any).notify;
+  if (api && typeof api.off === 'function') api.off();
+});
 
 const shortcutsOpen = ref(false);
 function openShortcuts() { shortcutsOpen.value = true; }
@@ -501,6 +660,67 @@ const envMavenText = computed(() => {
   return v ? `Maven ${v}` : 'Maven: Not found';
 });
 
+// Workspace state (English-only comments)
+type RepoInfo = {
+  name: string;
+  path: string;
+  origin: string | null;
+  branch: string | null;
+  ahead: boolean;
+  behind: boolean;
+  unstaged: boolean;
+};
+const workspaceRoot = ref<string>('');
+const repos = ref<RepoInfo[]>([]);
+const scanning = ref(false);
+const activeRepoPanels = ref<string[]>([]);
+const workspaceViewMode = ref<'collapse' | 'table'>('table');
+
+async function chooseWorkspaceRoot() {
+  try {
+    const dir = await (window as any).workspace?.chooseDir?.();
+    if (dir) {
+      workspaceRoot.value = dir;
+      await scanWorkspace();
+    }
+  } catch (e: any) {
+    ElMessage.error(e?.message || 'Failed to choose directory');
+  }
+}
+
+async function scanWorkspace() {
+  if (!workspaceRoot.value) {
+    // Use notification popup to guide user to choose directory
+    ElNotification({ title: 'Workspace', message: 'Please choose a directory', type: 'info', duration: 2500 });
+    return;
+  }
+  scanning.value = true;
+  try {
+    repos.value = await (window as any).workspace?.scanGitRepos?.(workspaceRoot.value);
+    // Notify completion with repo count
+    const count = Array.isArray(repos.value) ? repos.value.length : 0;
+    if (count > 0) {
+      ElNotification({ title: 'Scan Completed', message: `Found ${count} Git repositories`, type: 'success', duration: 3500 });
+      addNotification('Scan Completed', `Found ${count} Git repositories`, 'success');
+    } else {
+      ElNotification({ title: 'Scan Completed', message: 'No repositories found', type: 'warning', duration: 3500 });
+      addNotification('Scan Completed', 'No repositories found', 'warning');
+    }
+  } catch (e: any) {
+    // Show error as notification popup
+    ElNotification({ title: 'Scan Failed', message: e?.message || 'Failed to scan workspace', type: 'error', duration: 4500 });
+    addNotification('Scan Failed', e?.message || 'Failed to scan workspace', 'error');
+  } finally {
+    scanning.value = false;
+  }
+}
+
+// Navigate to collapse view and expand specific repository panel (English-only comment)
+function openRepoDetails(repoPath: string) {
+  workspaceViewMode.value = 'collapse';
+  activeRepoPanels.value = [repoPath];
+}
+
 // Quick search logic (English-only comments)
 const searchOpen = ref(false);
 const searchTerm = ref('');
@@ -521,6 +741,11 @@ function closeSearch() {
 }
 function submitQuickSearch() {
   const t = searchTerm.value.trim().toLowerCase();
+  if (t === 'ws' || t === 'workspace') {
+    activeMenu.value = 'workspace';
+    closeSearch();
+    return;
+  }
   if (t === 'mvn' || t === 'maven') {
     activeMenu.value = 'maven';
     closeSearch();
@@ -531,7 +756,7 @@ function submitQuickSearch() {
     closeSearch();
     return;
   }
-  ElMessage.info("Unknown target. Type 'mvn' or 'env'.");
+  ElMessage.info("Unknown target. Type 'ws', 'mvn', or 'env'.");
 }
 function handleGlobalKeydown(e: KeyboardEvent) {
   const isCmdOrCtrlP = (e.metaKey || e.ctrlKey) && !e.shiftKey && !e.altKey && e.key.toLowerCase() === 'p';
@@ -593,6 +818,7 @@ function handleGlobalKeydown(e: KeyboardEvent) {
 .titlebar-actions {
   justify-self: end;
 }
+.titlebar-actions .icon-btn { padding: 0 6px; }
 .settings-btn {
   display: inline-flex;
   align-items: center;
@@ -636,6 +862,11 @@ function handleGlobalKeydown(e: KeyboardEvent) {
   overflow: hidden;
   transition: width 0.2s ease;
 }
+.aside-title {
+  font-weight: 600;
+  padding: 10px 12px 6px 12px;
+  color: #333;
+}
 /* Restore thin grey separator line via el-aside to avoid disappearance */
 .el-aside {
   border-right: 1px solid #e6e6e6;
@@ -644,6 +875,8 @@ function handleGlobalKeydown(e: KeyboardEvent) {
 .aside .el-menu-item {
   border-right: 0;
 }
+.aside .el-menu { padding: 6px 0; }
+.aside .el-menu-item { height: 34px; line-height: 34px; padding: 0 12px; font-size: 13px; }
 .aside .el-menu-item span {
   display: inline-block;
   white-space: nowrap;
@@ -657,6 +890,7 @@ function handleGlobalKeydown(e: KeyboardEvent) {
 }
 .aside .el-menu-item .el-icon {
   margin-right: 8px;
+  font-size: 16px;
   transition: margin 0.2s ease;
 }
 .aside.collapsed .el-menu-item .el-icon {
@@ -909,6 +1143,20 @@ function handleGlobalKeydown(e: KeyboardEvent) {
   overflow: auto;
   padding: 12px;
 }
+
+/* Notifications drawer styles */
+.notifications-toolbar { display: flex; justify-content: flex-end; margin-bottom: 8px; }
+.notifications-actions { display: inline-flex; align-items: center; gap: 8px; }
+.notifications-list { display: flex; flex-direction: column; gap: 8px; }
+.notification-item { border: 1px solid #eee; border-radius: 6px; padding: 8px 10px; }
+.notification-item .notif-row { display: flex; justify-content: space-between; align-items: baseline; }
+.notif-title { font-weight: 600; color: #333; }
+.notif-meta { font-size: 12px; color: #888; }
+.notif-message { margin-top: 6px; color: #444; line-height: 1.4; }
+.notification-item.lvl-warning { border-color: #f59e0b; background: #fff7ed; }
+.notification-item.lvl-error { border-color: #ef4444; background: #fef2f2; }
+.notification-item.lvl-info { border-color: #93c5fd; background: #eff6ff; }
+.notification-item.lvl-success { border-color: #10b981; background: #ecfdf5; }
 /* Global hidden scrollbars for common containers */
 .app-root,
 .content-container,
@@ -925,4 +1173,64 @@ function handleGlobalKeydown(e: KeyboardEvent) {
   height: 0;
   display: none;
 }
+
+.header-actions { margin-left: auto; }
+
+/* Workspace repo collapse styles */
+.repo-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.repo-title {
+  font-weight: 600;
+  color: #333;
+  font-size: 16px;
+}
+.repo-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #666;
+  font-size: 12px;
+}
+.repo-branch { color: #444; }
+.repo-path { color: #777; }
+.repo-detail {
+  display: grid;
+  grid-template-columns: 160px 1fr;
+  gap: 6px 10px;
+  padding: 6px 6px;
+}
+.repo-detail-row { display: contents; }
+.repo-detail .label { color: #666; }
+.repo-detail .value { color: #333; }
+
+/* Repo status flags */
+.repo-flags { display: flex; align-items: center; gap: 4px; margin-top: 2px; }
+.repo-summary .repo-flags { margin-top: 6px; }
+.repo-flag {
+  display: inline-flex;
+  align-items: center;
+  padding: 1px 5px;
+  height: 18px;
+  line-height: 16px;
+  border-radius: 6px;
+  border: 1px solid #e5e7eb;
+  font-size: 11px;
+}
+.flag-unstaged { color: #b45309; background: #fff7ed; border-color: #fed7aa; }
+.flag-ahead { color: #065f46; background: #ecfdf5; border-color: #a7f3d0; }
+.flag-behind { color: #7f1d1d; background: #fef2f2; border-color: #fecaca; }
+.flag-clean { color: #374151; background: #f9fafb; border-color: #e5e7eb; }
+
+/* Add spacing between collapse items so status and next panel don't touch */
+.el-collapse-item { margin-bottom: 12px; }
+/* Add spacing between adjacent collapse items when collapsed */
+.el-collapse-item + .el-collapse-item { margin-top: 12px; }
+/* Compact header/content padding */
+.el-collapse-item__header { padding: 6px 10px; }
+.el-collapse-item__content { padding: 6px 10px; }
+/* Extra spacing below header when collapsed */
+.el-collapse-item:not(.is-active) > .el-collapse-item__header { margin-bottom: 10px; }
 </style>

@@ -19,3 +19,24 @@ contextBridge.exposeInMainWorld('system', {
   // Get environment versions of java, python, and mvn
   getEnvVersions: async () => ipcRenderer.invoke('system:get-env-versions'),
 });
+
+// Expose workspace APIs (English-only comments)
+contextBridge.exposeInMainWorld('workspace', {
+  // Open a directory chooser dialog and return the selected path or null
+  chooseDir: async () => ipcRenderer.invoke('workspace:choose-dir'),
+  // Scan recursively for Git repositories under the given root directory
+  scanGitRepos: async (root: string) => ipcRenderer.invoke('workspace:scan-git', root),
+});
+
+// Expose a minimal notifications channel to the renderer (English-only comments)
+contextBridge.exposeInMainWorld('notify', {
+  // Subscribe to system notifications broadcast on 'system:notify'
+  on: (handler: (payload: any) => void) => {
+    const listener = (_event: Electron.IpcRendererEvent, payload: any) => handler(payload);
+    ipcRenderer.on('system:notify', listener);
+    // Return an unsubscribe function for convenience
+    return () => ipcRenderer.removeListener('system:notify', listener);
+  },
+  // Remove all listeners on the channel
+  off: () => ipcRenderer.removeAllListeners('system:notify'),
+});
