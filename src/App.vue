@@ -790,6 +790,16 @@ function handleGlobalKeydown(e: KeyboardEvent) {
 </script>
 
 <style>
+:root {
+  /* App theme: unify header, sidebar active, and Element Plus primary */
+  --el-color-primary: #6366f1;          /* indigo-500 */
+  --el-color-primary-dark-2: #4f46e5;   /* indigo-600 */
+  --el-color-primary-light-3: #a5b4fc;  /* indigo-300 */
+  --el-color-primary-light-5: #c7d2fe;  /* indigo-200 */
+  --el-color-primary-light-7: #e0e7ff;  /* indigo-100 */
+  --el-color-primary-light-8: #eef2ff;  /* indigo-50 */
+  --el-color-primary-light-9: #f5f7ff;  /* near-white for subtle hovers */
+}
 .titlebar {
   /* Make the entire header draggable like a native title bar */
   -webkit-app-region: drag;
@@ -798,7 +808,7 @@ function handleGlobalKeydown(e: KeyboardEvent) {
   top: 0;
   z-index: 1000;
   box-sizing: border-box;
-  background: linear-gradient(90deg, #3b82f6 0%, #8b5cf6 100%);
+  background: linear-gradient(90deg, var(--el-color-primary) 0%, var(--el-color-primary-dark-2) 100%);
   color: #fff;
 }
 .titlebar-inner {
@@ -879,9 +889,9 @@ function handleGlobalKeydown(e: KeyboardEvent) {
 .aside .el-menu { background: transparent; padding: 8px 4px; }
 .aside .el-menu-item { height: 34px; line-height: 34px; padding: 0 12px; font-size: 13px; margin: 4px 8px; border-radius: 8px; position: relative; transition: background 0.15s ease, color 0.15s ease; }
 .aside .el-menu-item:hover { background: rgba(0, 0, 0, 0.04); }
-.aside .el-menu-item.is-active { background: #eef2ff; color: #1f2937; }
-.aside .el-menu-item.is-active::before { content: ''; position: absolute; left: 0; top: 6px; bottom: 6px; width: 3px; border-radius: 2px; background: #6366f1; }
-.aside .el-menu-item.is-active .el-icon { color: #4f46e5; }
+.aside .el-menu-item.is-active { background: var(--el-color-primary-light-8); color: #1f2937; }
+.aside .el-menu-item.is-active::before { content: ''; position: absolute; left: 0; top: 6px; bottom: 6px; width: 3px; border-radius: 2px; background: var(--el-color-primary); }
+.aside .el-menu-item.is-active .el-icon { color: var(--el-color-primary-dark-2); }
 .aside .el-menu-item:focus-visible { outline: 2px solid #93c5fd; outline-offset: 2px; }
 .aside.collapsed .el-menu { padding: 8px 0; }
 .aside.collapsed .el-menu-item { padding: 0 10px; margin: 6px; justify-content: center; }
