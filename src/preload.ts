@@ -8,4 +8,6 @@ contextBridge.exposeInMainWorld('m2', {
   listFiles: async () => ipcRenderer.invoke('m2:list-files'),
   // Read a specific file (relative path under ~/.m2/config)
   readFile: async (relativePath: string) => ipcRenderer.invoke('m2:read-file', relativePath),
+  // Create a new XML file under ~/.m2/config
+  createFile: async (fileName: string, content?: string) => ipcRenderer.invoke('m2:create-file', fileName, content),
 });

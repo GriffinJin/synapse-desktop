@@ -7,6 +7,7 @@ import fssync from 'node:fs';
 import os from 'node:os';
 
 const M2_CONFIG_DIR = path.join(os.homedir(), '.m2', 'config');
+const DEFAULT_XML = '<?xml version="1.0" encoding="UTF-8"?>\n<configuration/>\n';
 
 type FileMeta = {
   name: string;
@@ -67,6 +68,34 @@ ipcMain.handle('m2:read-file', async (_event, relativePath: string) => {
   return content;
 });
 
+// Create a new XML file safely inside ~/.m2/config
+ipcMain.handle('m2:create-file', async (_event, fileName: string, content?: string) => {
+  if (typeof fileName !== 'string' || !fileName.trim()) {
+    throw new Error('Invalid fileName');
+  }
+  const base = path.resolve(M2_CONFIG_DIR);
+  await fs.mkdir(base, { recursive: true });
+  // Only allow file name without directories
+  let safeName = path.basename(fileName.trim());
+  const safePattern = /^[a-zA-Z0-9._-]+(\.xml)?$/;
+  if (!safePattern.test(safeName)) {
+    throw new Error('Invalid fileName characters');
+  }
+  if (!/\.xml$/i.test(safeName)) {
+    safeName += '.xml';
+  }
+  const abs = path.resolve(path.join(base, safeName));
+  const isInside = abs === base || abs.startsWith(base + path.sep);
+  if (!isInside) {
+    throw new Error('Access denied: outside ~/.m2/config');
+  }
+  if (fssync.existsSync(abs)) {
+    throw new Error('File already exists');
+  }
+  await fs.writeFile(abs, content ?? DEFAULT_XML, 'utf-8');
+  return true;
+});
+
 // Handle creating/removing shortcuts on Windows when installing/uninstalling.
 if (started) {
   app.quit();
@@ -77,6 +106,8 @@ const createWindow = () => {
   const mainWindow = new BrowserWindow({
     width: 800,
     height: 600,
+    // On macOS, use hiddenInset so the traffic lights sit with the web UI
+    ...(process.platform === 'darwin' ? { titleBarStyle: 'hiddenInset' } : {}),
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
     },

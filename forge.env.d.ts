@@ -13,6 +13,7 @@ declare global {
     m2: {
       listFiles: () => Promise<FileMeta[]>;
       readFile: (relativePath: string) => Promise<string>;
+      createFile: (fileName: string, content?: string) => Promise<boolean>;
     };
   }
 }
