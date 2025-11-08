@@ -1,7 +1,7 @@
 <template>
   <el-container class="app-root">
     <!-- Titlebar: draggable area to align with macOS traffic lights -->
-    <el-header height="40px" class="titlebar">
+    <el-header height="52px" class="titlebar">
       <div class="titlebar-inner">
         <div class="brand no-drag">Synapse Desktop</div>
         <div class="titlebar-search no-drag" @click="openSearch">
@@ -406,8 +406,8 @@ function handleGlobalKeydown(e: KeyboardEvent) {
   min-width: 520px;
 }
 .search-input .el-input__wrapper {
-  height: 28px;
-  border-radius: 14px;
+  height: 34px;
+  border-radius: 17px;
 }
 .kbd-hint {
   display: inline-block;
@@ -427,10 +427,18 @@ function handleGlobalKeydown(e: KeyboardEvent) {
   font-weight: 600;
 }
 .aside {
-  border-right: 1px solid #eee;
+  border-right: 0; /* use el-aside to render the single separator line */
   height: 100%;
   overflow: hidden;
   transition: width 0.2s ease;
+}
+/* Restore thin grey separator line via el-aside to avoid disappearance */
+.el-aside {
+  border-right: 1px solid #e6e6e6;
+}
+.aside .el-menu,
+.aside .el-menu-item {
+  border-right: 0;
 }
 .aside .el-menu-item span {
   display: inline-block;
@@ -510,6 +518,14 @@ function handleGlobalKeydown(e: KeyboardEvent) {
 .main-scroll {
   height: 100%;
   overflow: auto;
+  border-left: 0; /* ensure no extra border on main content */
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE/Edge */
+}
+.main-scroll::-webkit-scrollbar { /* Chrome/Safari */
+  width: 0;
+  height: 0;
+  display: none;
 }
 .env-grid {
   display: grid;
@@ -541,5 +557,21 @@ function handleGlobalKeydown(e: KeyboardEvent) {
 }
 .status-item {
   line-height: 22px;
+}
+/* Global hidden scrollbars for common containers */
+.app-root,
+.content-container,
+.el-dialog__body,
+.el-table__body-wrapper {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.app-root::-webkit-scrollbar,
+.content-container::-webkit-scrollbar,
+.el-dialog__body::-webkit-scrollbar,
+.el-table__body-wrapper::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+  display: none;
 }
 </style>
