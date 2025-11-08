@@ -14,7 +14,12 @@
             </template>
           </el-input>
         </div>
-        <div class="titlebar-spacer"></div>
+        <div class="titlebar-actions no-drag">
+          <el-button class="settings-btn" type="text" @click="openSettings" :title="'Open settings'">
+            <el-icon><Setting /></el-icon>
+            <span class="settings-text">Settings</span>
+          </el-button>
+        </div>
       </div>
     </el-header>
 
@@ -134,11 +139,29 @@
           </div>
         </template>
       </el-main>
+      <!-- Settings overlay covering sidebar and main -->
+      <div v-if="settingsOpen" class="settings-overlay no-drag">
+        <div class="settings-header">
+          <h2>Settings</h2>
+          <el-button circle size="small" class="settings-close" @click="closeSettings" :title="'Close settings'">
+            <el-icon><Close /></el-icon>
+          </el-button>
+        </div>
+        <div class="settings-content">
+          <el-empty description="Settings page (coming soon)" />
+        </div>
+      </div>
     </el-container>
     <el-footer height="22px" class="statusbar">
       <div class="status-item">{{ osText }}</div>
       <div class="status-item">{{ cpuText }}</div>
       <div class="status-item">{{ memText }}</div>
+      <div class="status-actions no-drag">
+        <el-button size="small" type="text" @click="openShortcuts" :title="'Show keyboard shortcuts'">
+          <el-icon><List /></el-icon>
+          <span class="shortcut-text">Shortcuts</span>
+        </el-button>
+      </div>
     </el-footer>
     <!-- Quick Search dialog (English-only comments) -->
     <el-dialog v-model="searchOpen" title="Quick Search" width="420px" :close-on-click-modal="true" destroy-on-close>
@@ -153,13 +176,75 @@
         <el-button type="primary" @click="submitQuickSearch">Go</el-button>
       </template>
     </el-dialog>
+
+    <!-- Keyboard Shortcuts drawer (slides in from right) -->
+    <el-drawer v-model="shortcutsOpen" title="Keyboard Shortcuts" direction="rtl" size="420px">
+      <div class="shortcut-list">
+        <!-- Modern shortcut card: Quick Search -->
+        <div class="shortcut-item">
+          <div class="shortcut-left">
+            <el-icon class="shortcut-icon"><Search /></el-icon>
+            <div class="shortcut-text">
+              <div class="shortcut-title">Quick Search</div>
+              <div class="shortcut-sub">Open overlay and type aliases like mvn / env</div>
+            </div>
+          </div>
+          <div class="shortcut-keys">
+            <span class="kbd-key">Cmd</span><span class="plus">+</span><span class="kbd-key">P</span>
+            <span class="slash">/</span>
+            <span class="kbd-key">Ctrl</span><span class="plus">+</span><span class="kbd-key">P</span>
+          </div>
+        </div>
+        <!-- Modern shortcut card: Settings -->
+        <div class="shortcut-item">
+          <div class="shortcut-left">
+            <el-icon class="shortcut-icon"><Setting /></el-icon>
+            <div class="shortcut-text">
+              <div class="shortcut-title">Open Settings</div>
+              <div class="shortcut-sub">Show settings overlay</div>
+            </div>
+          </div>
+          <div class="shortcut-keys">
+            <span class="kbd-key">Cmd</span><span class="plus">+</span><span class="kbd-key">,</span>
+            <span class="slash">/</span>
+            <span class="kbd-key">Ctrl</span><span class="plus">+</span><span class="kbd-key">,</span>
+          </div>
+        </div>
+        <!-- Modern shortcut card: Close overlays -->
+        <div class="shortcut-item">
+          <div class="shortcut-left">
+            <el-icon class="shortcut-icon"><Close /></el-icon>
+            <div class="shortcut-text">
+              <div class="shortcut-title">Close Overlay</div>
+              <div class="shortcut-sub">Dismiss Search or Settings</div>
+            </div>
+          </div>
+          <div class="shortcut-keys">
+            <span class="kbd-key">Esc</span>
+          </div>
+        </div>
+        <!-- Modern shortcut card: Submit Search -->
+        <div class="shortcut-item">
+          <div class="shortcut-left">
+            <el-icon class="shortcut-icon"><List /></el-icon>
+            <div class="shortcut-text">
+              <div class="shortcut-title">Submit Search</div>
+              <div class="shortcut-sub">Confirm and navigate</div>
+            </div>
+          </div>
+          <div class="shortcut-keys">
+            <span class="kbd-key">Enter</span>
+          </div>
+        </div>
+      </div>
+    </el-drawer>
   </el-container>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue';
 import { ElMessage } from 'element-plus';
-import { Collection, Fold, Expand, Setting, Search } from '@element-plus/icons-vue';
+import { Collection, Fold, Expand, Setting, Search, Close, List } from '@element-plus/icons-vue';
 
 type FileMeta = {
   name: string;
@@ -179,6 +264,14 @@ const addForm = ref<{ name: string; content: string }>({ name: '', content: '' }
 const search = ref('');
 const isAsideCollapsed = ref(false);
 const asideWidth = computed(() => (isAsideCollapsed.value ? 64 : 220));
+
+const settingsOpen = ref(false);
+function openSettings() { settingsOpen.value = true; }
+function closeSettings() { settingsOpen.value = false; }
+
+const shortcutsOpen = ref(false);
+function openShortcuts() { shortcutsOpen.value = true; }
+function closeShortcuts() { shortcutsOpen.value = false; }
 
 const hasM2 = computed(() => typeof window !== 'undefined' && (window as any).m2);
 
@@ -345,6 +438,8 @@ const searchTerm = ref('');
 const quickInputRef = ref<HTMLInputElement | null>(null);
 
 function openSearch() {
+  // Do not open search when settings overlay is visible
+  if (settingsOpen.value) return;
   searchOpen.value = true;
   nextTick(() => {
     // Focus input after dialog opens
@@ -371,12 +466,31 @@ function submitQuickSearch() {
 }
 function handleGlobalKeydown(e: KeyboardEvent) {
   const isCmdOrCtrlP = (e.metaKey || e.ctrlKey) && !e.shiftKey && !e.altKey && e.key.toLowerCase() === 'p';
-  if (isCmdOrCtrlP) {
+  const isCmdOrCtrlComma = (e.metaKey || e.ctrlKey) && !e.shiftKey && !e.altKey && e.key === ',';
+  // Open Settings overlay with Cmd/Ctrl + , (comma)
+  if (isCmdOrCtrlComma) {
+    e.preventDefault();
+    if (!settingsOpen.value) openSettings();
+    return;
+  }
+  // Open Quick Search with Cmd/Ctrl + P only when settings is not open
+  if (isCmdOrCtrlP && !settingsOpen.value) {
     e.preventDefault();
     openSearch();
-  } else if (e.key === 'Escape' && searchOpen.value) {
-    e.preventDefault();
-    closeSearch();
+    return;
+  }
+  // Close overlays with Escape
+  if (e.key === 'Escape') {
+    if (searchOpen.value) {
+      e.preventDefault();
+      closeSearch();
+      return;
+    }
+    if (settingsOpen.value) {
+      e.preventDefault();
+      closeSettings();
+      return;
+    }
   }
 }
 </script>
@@ -404,6 +518,17 @@ function handleGlobalKeydown(e: KeyboardEvent) {
   width: 80%;
   max-width: 1000px;
   min-width: 520px;
+}
+.titlebar-actions {
+  justify-self: end;
+}
+.settings-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.settings-text {
+  font-size: 13px;
 }
 .search-input .el-input__wrapper {
   height: 34px;
@@ -557,6 +682,102 @@ function handleGlobalKeydown(e: KeyboardEvent) {
 }
 .status-item {
   line-height: 22px;
+}
+.status-actions {
+  margin-left: auto;
+}
+.shortcut-text {
+  font-size: 12px;
+}
+.shortcut-list {
+  display: grid;
+  gap: 12px;
+  padding: 6px;
+}
+.shortcut-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 12px;
+  border: 1px solid #eaeaea;
+  border-radius: 10px;
+  background: #fff;
+}
+.shortcut-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.shortcut-icon {
+  color: #666;
+}
+.shortcut-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.shortcut-title {
+  font-weight: 600;
+}
+.shortcut-sub {
+  color: #777;
+  font-size: 12px;
+}
+.shortcut-keys {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.kbd-key {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 26px;
+  height: 26px;
+  padding: 0 8px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  background: #f7f7f8;
+  box-shadow: inset 0 -1px 0 rgba(0, 0, 0, 0.06);
+  font-size: 12px;
+  color: #333;
+}
+.plus, .slash {
+  color: #999;
+  padding: 0 4px;
+}
+/* Hide drawer body scrollbar for cleaner look while preserving scroll */
+.el-drawer__body {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.el-drawer__body::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+  display: none;
+}
+
+/* Settings overlay styles */
+.settings-overlay {
+  position: absolute;
+  inset: 0;
+  background: #fff;
+  z-index: 1500;
+  display: flex;
+  flex-direction: column;
+}
+.settings-header {
+  height: 52px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid #eee;
+  padding: 0 12px;
+}
+.settings-content {
+  flex: 1;
+  overflow: auto;
+  padding: 12px;
 }
 /* Global hidden scrollbars for common containers */
 .app-root,
