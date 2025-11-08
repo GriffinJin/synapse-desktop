@@ -115,7 +115,8 @@
                 </div>
               </el-collapse-item>
             </el-collapse>
-            <el-table v-else :data="repos" border>
+            <el-table v-else :data="repos" border row-key="path" @selection-change="onRepoSelectionChange">
+              <el-table-column type="selection" width="48" />
               <el-table-column prop="name" label="Repository" min-width="200" />
               <el-table-column label="Origin" min-width="320">
                 <template #default="{ row }">
@@ -676,6 +677,7 @@ const repos = ref<RepoInfo[]>([]);
 const scanning = ref(false);
 const activeRepoPanels = ref<string[]>([]);
 const workspaceViewMode = ref<'details' | 'operations'>('operations');
+const selectedRepoPaths = ref<string[]>([]);
 
 async function chooseWorkspaceRoot() {
   try {
@@ -720,6 +722,11 @@ async function scanWorkspace() {
 function openRepoDetails(repoPath: string) {
   workspaceViewMode.value = 'details';
   activeRepoPanels.value = [repoPath];
+}
+
+// Track selection changes in Operations table for future bulk actions
+function onRepoSelectionChange(selection: RepoInfo[]) {
+  selectedRepoPaths.value = selection.map(r => r.path);
 }
 
 // Quick search logic (English-only comments)
@@ -1259,4 +1266,62 @@ function handleGlobalKeydown(e: KeyboardEvent) {
 .el-collapse-item__content { padding: 6px 10px; }
 /* Extra spacing below header when collapsed */
 .el-collapse-item:not(.is-active) > .el-collapse-item__header { margin-bottom: 10px; }
+
+/* Modern style for Operations table (English-only comments) */
+.modern-table {
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+  background: transparent;
+}
+/* Ensure Element Plus table root has no background/border */
+.modern-table :deep(.el-table) {
+  background: transparent;
+  border: none;
+}
+/* Header wrapper transparent for open style */
+.modern-table :deep(.el-table__header-wrapper) {
+  background: transparent;
+}
+/* Remove vertical separators and extra patches */
+.modern-table :deep(.el-table__inner-wrapper)::before,
+.modern-table :deep(.el-table__border-right-patch),
+.modern-table :deep(.el-table--border::before),
+.modern-table :deep(.el-table--border::after) {
+  display: none;
+}
+/* Header cells: only bottom line */
+.modern-table :deep(th.el-table__cell) {
+  font-weight: 600;
+  color: #374151;
+  background: transparent;
+  padding: 10px 12px;
+  border-right: 0 !important;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+}
+/* Body cells: only bottom line, no vertical lines */
+.modern-table :deep(.el-table__cell) {
+  padding: 10px 12px;
+  border-right: 0 !important;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+}
+/* Stripe rows with very light tone */
+.modern-table :deep(.el-table--striped .el-table__body tr.el-table__row--striped td) {
+  background-color: rgba(0, 0, 0, 0.02);
+}
+/* Hover and current row remain subtle */
+.modern-table :deep(.el-table__row:hover > td) {
+  background-color: var(--el-color-primary-light-9);
+}
+.modern-table :deep(.el-table__body tr.current-row > td) {
+  background-color: var(--el-color-primary-light-8);
+}
+/* Selection checkbox reflects theme */
+.modern-table :deep(.el-checkbox.is-checked .el-checkbox__inner) {
+  background-color: var(--el-color-primary);
+  border-color: var(--el-color-primary);
+}
+.modern-table :deep(.el-checkbox__inner:hover) {
+  border-color: var(--el-color-primary);
+}
 </style>
