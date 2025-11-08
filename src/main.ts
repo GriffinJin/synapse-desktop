@@ -213,6 +213,9 @@ const createWindow = () => {
   const mainWindow = new BrowserWindow({
     width: 1200,
     height: 800,
+    // Enforce minimum window size to prevent layout from breaking
+    minWidth: 1024,
+    minHeight: 640,
     // On macOS, use hiddenInset so the traffic lights sit with the web UI
     ...(process.platform === 'darwin' ? { titleBarStyle: 'hiddenInset' } : {}),
     webPreferences: {

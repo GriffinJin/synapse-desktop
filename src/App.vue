@@ -4,9 +4,17 @@
     <el-header height="40px" class="titlebar">
       <div class="titlebar-inner">
         <div class="brand no-drag">Synapse Desktop</div>
-        <el-menu class="no-drag" mode="horizontal" :default-active="activeTop">
-          <el-menu-item index="home">Home</el-menu-item>
-        </el-menu>
+        <div class="titlebar-search no-drag" @click="openSearch">
+          <el-input readonly placeholder="Quick Search" class="search-input">
+            <template #prefix>
+              <el-icon><Search /></el-icon>
+            </template>
+            <template #suffix>
+              <span class="kbd-hint">Cmd + P</span>
+            </template>
+          </el-input>
+        </div>
+        <div class="titlebar-spacer"></div>
       </div>
     </el-header>
 
@@ -132,13 +140,26 @@
       <div class="status-item">{{ cpuText }}</div>
       <div class="status-item">{{ memText }}</div>
     </el-footer>
+    <!-- Quick Search dialog (English-only comments) -->
+    <el-dialog v-model="searchOpen" title="Quick Search" width="420px" :close-on-click-modal="true" destroy-on-close>
+      <el-input
+        ref="quickInputRef"
+        v-model="searchTerm"
+        placeholder="Type 'mvn' or 'env' and press Enter"
+        @keyup.enter="submitQuickSearch"
+      />
+      <template #footer>
+        <el-button @click="closeSearch">Cancel</el-button>
+        <el-button type="primary" @click="submitQuickSearch">Go</el-button>
+      </template>
+    </el-dialog>
   </el-container>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue';
 import { ElMessage } from 'element-plus';
-import { Collection, Fold, Expand, Setting } from '@element-plus/icons-vue';
+import { Collection, Fold, Expand, Setting, Search } from '@element-plus/icons-vue';
 
 type FileMeta = {
   name: string;
@@ -236,6 +257,12 @@ onMounted(async () => {
     // Preload environment versions for Environments page
     await refreshEnv();
   }
+  // Global shortcut: Cmd+P / Ctrl+P to open quick search
+  window.addEventListener('keydown', handleGlobalKeydown);
+});
+
+onUnmounted(() => {
+  window.removeEventListener('keydown', handleGlobalKeydown);
 });
 
 // System stats for status bar (English-only comments)
@@ -311,6 +338,47 @@ const envMavenText = computed(() => {
   const v = envVersions.value?.mvn;
   return v ? `Maven ${v}` : 'Maven: Not found';
 });
+
+// Quick search logic (English-only comments)
+const searchOpen = ref(false);
+const searchTerm = ref('');
+const quickInputRef = ref<HTMLInputElement | null>(null);
+
+function openSearch() {
+  searchOpen.value = true;
+  nextTick(() => {
+    // Focus input after dialog opens
+    (quickInputRef.value as any)?.focus?.();
+  });
+}
+function closeSearch() {
+  searchOpen.value = false;
+  searchTerm.value = '';
+}
+function submitQuickSearch() {
+  const t = searchTerm.value.trim().toLowerCase();
+  if (t === 'mvn' || t === 'maven') {
+    activeMenu.value = 'maven';
+    closeSearch();
+    return;
+  }
+  if (t === 'env' || t === 'environments') {
+    activeMenu.value = 'env';
+    closeSearch();
+    return;
+  }
+  ElMessage.info("Unknown target. Type 'mvn' or 'env'.");
+}
+function handleGlobalKeydown(e: KeyboardEvent) {
+  const isCmdOrCtrlP = (e.metaKey || e.ctrlKey) && !e.shiftKey && !e.altKey && e.key.toLowerCase() === 'p';
+  if (isCmdOrCtrlP) {
+    e.preventDefault();
+    openSearch();
+  } else if (e.key === 'Escape' && searchOpen.value) {
+    e.preventDefault();
+    closeSearch();
+  }
+}
 </script>
 
 <style>
@@ -324,13 +392,32 @@ const envMavenText = computed(() => {
   box-sizing: border-box;
 }
 .titlebar-inner {
-  display: flex;
-  justify-content: space-between;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
   align-items: center;
   height: 100%;
   /* Leave space for macOS traffic lights when titleBarStyle is hiddenInset */
   padding-left: 72px;
   padding-right: 12px;
+}
+.titlebar-search {
+  width: 80%;
+  max-width: 1000px;
+  min-width: 520px;
+}
+.search-input .el-input__wrapper {
+  height: 28px;
+  border-radius: 14px;
+}
+.kbd-hint {
+  display: inline-block;
+  padding: 0 6px;
+  border: 1px solid #ddd;
+  border-bottom-width: 2px;
+  border-radius: 4px;
+  color: #666;
+  font-size: 12px;
+  line-height: 18px;
 }
 .no-drag {
   /* Allow interactive elements to be clickable within a draggable titlebar */
