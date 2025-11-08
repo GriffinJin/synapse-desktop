@@ -11,12 +11,23 @@
     </el-header>
 
     <el-container class="content-container">
-      <!-- Sidebar: single-level menu -->
-      <el-aside width="220px" class="aside">
-        <el-menu :default-active="activeMenu" @select="onSelectMenu">
-          <el-menu-item index="maven">Maven</el-menu-item>
+      <!-- Sidebar: single-level menu with icons -->
+      <el-aside :width="isAsideCollapsed ? '64px' : '220px'" class="aside">
+        <el-menu :default-active="activeMenu" @select="onSelectMenu" :collapse="isAsideCollapsed">
+          <el-menu-item index="maven">
+            <el-icon><Collection /></el-icon>
+            <span>Maven</span>
+          </el-menu-item>
         </el-menu>
       </el-aside>
+
+      <!-- Toggle button centered on the divider between aside and main -->
+      <div class="aside-toggle no-drag" :style="{ left: asideWidth + 'px' }">
+        <el-button circle size="small" @click="toggleAside" :title="isAsideCollapsed ? 'Expand sidebar' : 'Collapse sidebar'">
+          <el-icon v-if="isAsideCollapsed"><Expand /></el-icon>
+          <el-icon v-else><Fold /></el-icon>
+        </el-button>
+      </div>
 
       <!-- Main content -->
       <el-main class="main-scroll">
@@ -91,6 +102,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue';
 import { ElMessage } from 'element-plus';
+import { Collection, Fold, Expand } from '@element-plus/icons-vue';
 
 type FileMeta = {
   name: string;
@@ -108,6 +120,8 @@ const previewVisible = ref(false);
 const addVisible = ref(false);
 const addForm = ref<{ name: string; content: string }>({ name: '', content: '' });
 const search = ref('');
+const isAsideCollapsed = ref(false);
+const asideWidth = computed(() => (isAsideCollapsed.value ? 64 : 220));
 
 const hasM2 = computed(() => typeof window !== 'undefined' && (window as any).m2);
 
@@ -120,6 +134,10 @@ const filteredFiles = computed(() => {
 
 function onSelectMenu(index: string) {
   activeMenu.value = index;
+}
+
+function toggleAside() {
+  isAsideCollapsed.value = !isAsideCollapsed.value;
 }
 
 function isXml(name: string) {
@@ -209,6 +227,15 @@ onMounted(async () => {
   height: 100%;
   overflow: hidden;
 }
+.aside-toggle {
+  position: absolute;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 500;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.15s ease-in-out;
+}
 .section-header {
   display: flex;
   align-items: baseline;
@@ -248,6 +275,14 @@ onMounted(async () => {
 .content-container {
   flex: 1;
   overflow: hidden;
+  position: relative;
+}
+
+/* Show toggle only when hovering sidebar or the toggle itself */
+.aside:hover + .aside-toggle,
+.aside-toggle:hover {
+  opacity: 1;
+  pointer-events: auto;
 }
 .main-scroll {
   height: 100%;
