@@ -1,5 +1,5 @@
 <template>
-  <el-container style="height: 100vh">
+  <el-container class="app-root">
     <!-- Titlebar: draggable area to align with macOS traffic lights -->
     <el-header height="40px" class="titlebar">
       <div class="titlebar-inner">
@@ -183,6 +183,10 @@ onMounted(async () => {
   /* Make the entire header draggable like a native title bar */
   -webkit-app-region: drag;
   border-bottom: 1px solid #eee;
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+  box-sizing: border-box;
 }
 .titlebar-inner {
   display: flex;
@@ -202,6 +206,8 @@ onMounted(async () => {
 }
 .aside {
   border-right: 1px solid #eee;
+  height: 100%;
+  overflow: hidden;
 }
 .section-header {
   display: flex;
@@ -232,10 +238,19 @@ onMounted(async () => {
   display: flex;
   gap: 8px;
 }
+.app-root {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
 .content-container {
-  height: calc(100vh - 40px);
+  flex: 1;
+  overflow: hidden;
 }
 .main-scroll {
+  height: 100%;
   overflow: auto;
 }
 </style>
