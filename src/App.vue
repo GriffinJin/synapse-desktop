@@ -1,29 +1,10 @@
 <template>
   <el-container class="app-root">
-    <!-- Titlebar: draggable area to align with macOS traffic lights -->
-    <el-header height="52px" class="titlebar">
-      <div class="titlebar-inner">
-        <div class="brand no-drag">Synapse Desktop</div>
-        <div class="titlebar-search no-drag" @click="openSearch">
-          <el-input readonly placeholder="Quick Search" class="search-input">
-            <template #prefix>
-              <el-icon><Search /></el-icon>
-            </template>
-            <template #suffix>
-              <span class="kbd-hint">Cmd + P</span>
-            </template>
-          </el-input>
-        </div>
-        <div class="titlebar-actions no-drag">
-          <el-button class="icon-btn" type="text" @click="openNotifications" :title="'Notifications'">
-            <el-icon><Bell /></el-icon>
-          </el-button>
-          <el-button class="icon-btn settings-btn" type="text" @click="openSettings" :title="'Open settings'">
-            <el-icon><Setting /></el-icon>
-          </el-button>
-        </div>
-      </div>
-    </el-header>
+    <AppHeader
+      @open-search="openSearch"
+      @open-notifications="openNotifications"
+      @open-settings="openSettings"
+    />
 
     <el-container class="content-container">
       <!-- Sidebar: single-level menu with icons -->
@@ -55,11 +36,7 @@
       <!-- Main content -->
       <el-main class="main-scroll">
         <template v-if="activeMenu === 'workspace'">
-          <div class="section-header">
-            <h2>Workspace</h2>
-            <span class="muted">Select a directory to discover Git repositories</span>
-          </div>
-
+          <MainHeader title="Workspace" subtitle="Select a directory to discover Git repositories"/>
           <div class="subnav">
             <el-tabs v-model="workspaceViewMode">
               <el-tab-pane label="Operations" name="operations" />
@@ -424,6 +401,23 @@
 import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue';
 import { ElMessage, ElNotification } from 'element-plus';
 import { Collection, Fold, Expand, Setting, Search, Close, List, Monitor, Cpu, TrendCharts, ArrowLeft, Folder, Bell } from '@element-plus/icons-vue';
+import AppHeader from './app/components/AppHeader.vue';
+import MainHeader from './app/components/MainHeader.vue';
+import {
+  settingsOpen,
+  openSettings,
+  closeSettings,
+  searchOpen,
+  openSearch,
+  closeSearch as globalCloseSearch,
+  notificationsOpen,
+  openNotifications,
+  closeNotifications,
+  shortcutsOpen,
+  openShortcuts,
+  closeShortcuts,
+  registerSearchFocus,
+} from './app/service/useGlobalUI';
 
 type FileMeta = {
   name: string;
@@ -444,16 +438,11 @@ const search = ref('');
 const isAsideCollapsed = ref(false);
 const asideWidth = computed(() => (isAsideCollapsed.value ? 64 : 220));
 
-const settingsOpen = ref(false);
-function openSettings() { settingsOpen.value = true; }
-function closeSettings() { settingsOpen.value = false; }
+// Settings state and methods are provided by global UI composable
 
 // Notifications: state and helpers (English-only comments)
 type NotificationItem = { id: string; title: string; message: string; level?: 'info' | 'warning' | 'error' | 'success'; time: string };
-const notificationsOpen = ref(false);
 const notifications = ref<NotificationItem[]>([]);
-function openNotifications() { notificationsOpen.value = true; }
-function closeNotifications() { notificationsOpen.value = false; }
 function clearNotifications() { notifications.value = []; }
 
 // Helper to add notification into the right-side drawer (English-only comments)
@@ -486,9 +475,7 @@ onUnmounted(() => {
   if (api && typeof api.off === 'function') api.off();
 });
 
-const shortcutsOpen = ref(false);
-function openShortcuts() { shortcutsOpen.value = true; }
-function closeShortcuts() { shortcutsOpen.value = false; }
+// Shortcuts state and methods are provided by global UI composable
 
 const hasM2 = computed(() => typeof window !== 'undefined' && (window as any).m2);
 
@@ -785,21 +772,11 @@ function onRepoSelectionChange(selection: RepoInfo[]) {
 }
 
 // Quick search logic (English-only comments)
-const searchOpen = ref(false);
 const searchTerm = ref('');
 const quickInputRef = ref<HTMLInputElement | null>(null);
 
-function openSearch() {
-  // Do not open search when settings overlay is visible
-  if (settingsOpen.value) return;
-  searchOpen.value = true;
-  nextTick(() => {
-    // Focus input after dialog opens
-    (quickInputRef.value as any)?.focus?.();
-  });
-}
 function closeSearch() {
-  searchOpen.value = false;
+  globalCloseSearch();
   searchTerm.value = '';
 }
 function submitQuickSearch() {
@@ -850,6 +827,15 @@ function handleGlobalKeydown(e: KeyboardEvent) {
     }
   }
 }
+
+// Register focus hook for Quick Search input after dialog opens
+onMounted(() => {
+  registerSearchFocus(() => {
+    nextTick(() => {
+      (quickInputRef.value as any)?.focus?.();
+    });
+  });
+});
 </script>
 
 <style>
@@ -1002,9 +988,7 @@ function handleGlobalKeydown(e: KeyboardEvent) {
   padding: 0 12px;
   margin-bottom: 8px;
 }
-.muted {
-  color: #888;
-}
+
 .code {
   white-space: pre-wrap;
   word-break: break-word;
