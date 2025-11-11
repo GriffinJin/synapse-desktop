@@ -150,6 +150,13 @@
           <el-table :data="filteredFiles" border>
             <el-table-column prop="name" label="Name" min-width="220" />
             <el-table-column prop="relativePath" label="Relative Path" min-width="280" />
+            <el-table-column label="Status" width="140">
+              <template #default="{ row }">
+                <el-tag :type="isActiveConfig(row) ? 'success' : activeConfigPath ? 'info' : 'warning'">
+                  {{ isActiveConfig(row) ? 'Enabled' : activeConfigPath ? 'Disabled' : 'Unknown' }}
+                </el-tag>
+              </template>
+            </el-table-column>
             <el-table-column prop="size" label="Size" width="120">
               <template #default="{ row }">
                 <span v-if="typeof row.size === 'number'">{{ formatSize(row.size) }}</span>
@@ -158,9 +165,19 @@
             </el-table-column>
             <el-table-column label="Actions" width="160">
               <template #default="{ row }">
-                <el-button size="small" type="primary" plain :disabled="!isXml(row.name)" @click="preview(row)">
-                  Preview
-                </el-button>
+                <el-tooltip content="Preview" placement="top">
+                  <span>
+                    <el-button
+                      size="small"
+                      type="primary"
+                      plain
+                      circle
+                      :icon="View"
+                      :disabled="!isXml(row.name)"
+                      @click="preview(row)"
+                    />
+                  </span>
+                </el-tooltip>
               </template>
             </el-table-column>
           </el-table>
@@ -405,6 +422,7 @@ import { ElMessage, ElNotification } from 'element-plus';
 import { Collection, Fold, Expand, Setting, Search, Close, List, Monitor, Cpu, TrendCharts, ArrowLeft, Folder, Bell } from '@element-plus/icons-vue';
 import AppHeader from './app/components/AppHeader.vue';
 import MainHeader from './app/components/MainHeader.vue';
+import { View } from '@element-plus/icons-vue';
 import {
   settingsOpen,
   openSettings,
@@ -481,6 +499,22 @@ onUnmounted(() => {
 
 const hasM2 = computed(() => typeof window !== 'undefined' && (window as any).m2);
 
+// Active Maven config target resolved from ~/.m2/config symlink (English-only comments)
+const activeConfigPath = ref<string | null>(null);
+
+async function refreshActiveConfig() {
+  try {
+    if (!hasM2.value) {
+      activeConfigPath.value = null;
+      return;
+    }
+    const t = await (window as any).m2.getActiveConfig();
+    activeConfigPath.value = typeof t === 'string' && t.length ? t : null;
+  } catch {
+    activeConfigPath.value = null;
+  }
+}
+
 const filesOnly = computed(() => files.value.filter((f) => !f.isDirectory));
 const filteredFiles = computed(() => {
   const term = search.value.trim().toLowerCase();
@@ -512,6 +546,18 @@ async function preview(f: FileMeta) {
   previewVisible.value = true;
 }
 
+// Helper to determine whether a given file is currently enabled (English-only comments)
+function isActiveConfig(f: FileMeta) {
+  const t = activeConfigPath.value;
+  if (!t) return false;
+  // If symlink points to a specific XML file, match directly
+  if (/\.xml$/i.test(t)) return f.absolutePath === t;
+  // If symlink points to a directory, consider 'settings.xml' in that directory as active
+  const normalized = t.endsWith('/') ? t.slice(0, -1) : t;
+  const candidate = `${normalized}/settings.xml`;
+  return f.absolutePath === candidate;
+}
+
 async function refresh() {
   try {
     if (!hasM2.value) {
@@ -519,6 +565,7 @@ async function refresh() {
       return;
     }
     files.value = await window.m2.listFiles();
+    await refreshActiveConfig();
   } catch (e) {
     ElMessage.error('Failed to refresh');
   }

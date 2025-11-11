@@ -24,12 +24,14 @@ async function listRecursive(dir: string, base: string): Promise<FileMeta[]> {
   const out: FileMeta[] = [];
   for (const entry of entries) {
     const abs = path.join(dir, entry.name);
+    let realAbs: string;
+    try { realAbs = await fs.realpath(abs); } catch { realAbs = abs; }
     const rel = path.relative(base, abs);
     if (entry.isDirectory()) {
       out.push({
         name: entry.name,
         relativePath: rel,
-        absolutePath: abs,
+        absolutePath: realAbs,
         isDirectory: true,
       });
       out.push(...(await listRecursive(abs, base)));
@@ -38,7 +40,7 @@ async function listRecursive(dir: string, base: string): Promise<FileMeta[]> {
       out.push({
         name: entry.name,
         relativePath: rel,
-        absolutePath: abs,
+        absolutePath: realAbs,
         isDirectory: false,
         size: stat.size,
       });
@@ -95,6 +97,22 @@ ipcMain.handle('m2:create-file', async (_event, fileName: string, content?: stri
   }
   await fs.writeFile(abs, content ?? DEFAULT_XML, 'utf-8');
   return true;
+});
+
+// Resolve which config file is currently enabled by ~/.m2/config symlink (English-only comments)
+ipcMain.handle('m2:get-active-config', async () => {
+  try {
+    const linkPath = path.join(os.homedir(), '.m2', 'config');
+    const stat = await fs.lstat(linkPath);
+    // Only proceed if ~/.m2/config is a symbolic link
+    if (!stat.isSymbolicLink()) return null;
+    // Resolve canonical target path (follows nested symlinks)
+    const targetReal = await fs.realpath(linkPath);
+    return targetReal;
+  } catch (_e) {
+    // If link doesn't exist or cannot be read, return null
+    return null;
+  }
 });
 
 // System stats: OS, CPU usage (system-wide), memory (English-only comments)

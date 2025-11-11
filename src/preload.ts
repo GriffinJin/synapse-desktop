@@ -10,6 +10,8 @@ contextBridge.exposeInMainWorld('m2', {
   readFile: async (relativePath: string) => ipcRenderer.invoke('m2:read-file', relativePath),
   // Create a new XML file under ~/.m2/config
   createFile: async (fileName: string, content?: string) => ipcRenderer.invoke('m2:create-file', fileName, content),
+  // Get the resolved target of ~/.m2/config symlink (English-only comments)
+  getActiveConfig: async () => ipcRenderer.invoke('m2:get-active-config'),
 });
 
 // Expose system stats API (English-only comments)
