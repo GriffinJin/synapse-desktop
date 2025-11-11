@@ -28,6 +28,18 @@ contextBridge.exposeInMainWorld('workspace', {
   scanGitRepos: async (root: string) => ipcRenderer.invoke('workspace:scan-git', root),
 });
 
+// Expose workspace cache APIs (English-only comments)
+contextBridge.exposeInMainWorld('workspaceCache', {
+  // List cached workspaces with meta
+  list: async () => ipcRenderer.invoke('workspace-cache:list'),
+  // Get repos from cache for a specific workspace root
+  get: async (root: string) => ipcRenderer.invoke('workspace-cache:get', root),
+  // Save repos to cache for a specific workspace root
+  set: async (root: string, repos: any[]) => ipcRenderer.invoke('workspace-cache:set', root, repos),
+  // Remove a cached workspace root
+  remove: async (root: string) => ipcRenderer.invoke('workspace-cache:remove', root),
+});
+
 // Expose a minimal notifications channel to the renderer (English-only comments)
 contextBridge.exposeInMainWorld('notify', {
   // Subscribe to system notifications broadcast on 'system:notify'

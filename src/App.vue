@@ -71,7 +71,22 @@
 
             <div class="toolbar">
               <div class="toolbar-left">
-                <el-input v-model="workspaceRoot" placeholder="Choose a root directory" readonly class="toolbar-search" />
+                <!-- Workspace selector: choose from cached workspaces -->
+                <el-select
+                  v-model="workspaceRoot"
+                  placeholder="Select a workspace"
+                  class="toolbar-search"
+                  filterable
+                  clearable
+                  @change="onWorkspaceSelected"
+                >
+                  <el-option
+                    v-for="w in knownWorkspaces"
+                    :key="w.root"
+                    :label="w.root"
+                    :value="w.root"
+                  />
+                </el-select>
               </div>
               <div class="toolbar-actions">
               <el-button @click="chooseWorkspaceRoot" :disabled="scanning">Choose Directory</el-button>
@@ -545,6 +560,7 @@ async function submitAdd() {
 
 onMounted(async () => {
   await refresh();
+  await refreshKnownWorkspaces();
   // Start status bar updates if system API is available
   if ((window as any).system) {
     await refreshStats();
@@ -678,6 +694,7 @@ const scanning = ref(false);
 const activeRepoPanels = ref<string[]>([]);
 const workspaceViewMode = ref<'details' | 'operations'>('operations');
 const selectedRepoPaths = ref<string[]>([]);
+const knownWorkspaces = ref<Array<{ root: string; lastScan: string; count: number }>>([]);
 
 async function chooseWorkspaceRoot() {
   try {
@@ -700,6 +717,14 @@ async function scanWorkspace() {
   scanning.value = true;
   try {
     repos.value = await (window as any).workspace?.scanGitRepos?.(workspaceRoot.value);
+    // Persist to workspace cache and refresh list
+    try {
+      await (window as any).workspaceCache?.set?.(workspaceRoot.value, repos.value);
+      addNotification('Cache Updated', `Saved ${repos.value.length} repositories for: ${workspaceRoot.value}`, 'success');
+    } catch (e: any) {
+      addNotification('Cache Error', e?.message || 'Failed to update workspace cache', 'warning');
+    }
+    await refreshKnownWorkspaces();
     // Notify completion with repo count
     const count = Array.isArray(repos.value) ? repos.value.length : 0;
     if (count > 0) {
@@ -715,6 +740,36 @@ async function scanWorkspace() {
     addNotification('Scan Failed', e?.message || 'Failed to scan workspace', 'error');
   } finally {
     scanning.value = false;
+  }
+}
+
+// Load cached workspaces list on startup (English-only comments)
+async function refreshKnownWorkspaces() {
+  try {
+    const list = await (window as any).workspaceCache?.list?.();
+    knownWorkspaces.value = Array.isArray(list) ? list : [];
+  } catch {
+    knownWorkspaces.value = [];
+  }
+}
+
+// Handle selecting a cached workspace from dropdown
+async function onWorkspaceSelected(newRoot: string) {
+  if (!newRoot) {
+    repos.value = [];
+    return;
+  }
+  try {
+    const cached = await (window as any).workspaceCache?.get?.(newRoot);
+    if (Array.isArray(cached) && cached.length > 0) {
+      repos.value = cached;
+    } else {
+      // Auto-scan when cache miss to ensure automatic caching
+      await scanWorkspace();
+    }
+  } catch {
+    // On error, attempt to auto-scan to populate cache
+    await scanWorkspace();
   }
 }
 
