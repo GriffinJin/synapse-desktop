@@ -1,25 +1,27 @@
 <template>
   <el-container class="app-root">
-    <AppHeader
-      @open-search="openSearch"
-      @open-notifications="openNotifications"
-      @open-settings="openSettings"
-    />
+    <AppHeader @open-search="openSearch" @open-notifications="openNotifications" @open-settings="openSettings" />
 
     <el-container class="content-container">
       <!-- Sidebar: single-level menu with icons -->
       <el-aside :width="isAsideCollapsed ? '64px' : '220px'" :class="['aside', { collapsed: isAsideCollapsed }]">
         <el-menu :default-active="activeMenu" @select="onSelectMenu">
           <el-menu-item index="workspace">
-            <el-icon><Folder /></el-icon>
+            <el-icon>
+              <Folder />
+            </el-icon>
             <span>Workspace</span>
           </el-menu-item>
           <el-menu-item index="maven">
-            <el-icon><Collection /></el-icon>
+            <el-icon>
+              <Collection />
+            </el-icon>
             <span>Maven</span>
           </el-menu-item>
           <el-menu-item index="env">
-            <el-icon><Setting /></el-icon>
+            <el-icon>
+              <Setting />
+            </el-icon>
             <span>Environments</span>
           </el-menu-item>
         </el-menu>
@@ -27,133 +29,118 @@
 
       <!-- Toggle button centered on the divider between aside and main -->
       <div class="aside-toggle no-drag" :style="{ left: asideWidth + 'px' }">
-        <el-button circle size="small" @click="toggleAside" :title="isAsideCollapsed ? 'Expand sidebar' : 'Collapse sidebar'">
-          <el-icon v-if="isAsideCollapsed"><Expand /></el-icon>
-          <el-icon v-else><Fold /></el-icon>
+        <el-button circle size="small" @click="toggleAside"
+          :title="isAsideCollapsed ? 'Expand sidebar' : 'Collapse sidebar'">
+          <el-icon v-if="isAsideCollapsed">
+            <Expand />
+          </el-icon>
+          <el-icon v-else>
+            <Fold />
+          </el-icon>
         </el-button>
       </div>
 
       <!-- Main content -->
       <el-main class="main-scroll">
         <template v-if="activeMenu === 'workspace'">
-          <MainHeader title="Workspace" subtitle="Select a directory to discover Git repositories"/>
-          <div class="subnav">
-            <el-tabs v-model="workspaceViewMode">
-              <el-tab-pane label="Operations" name="operations" />
-              <el-tab-pane label="Details" name="details" />
-            </el-tabs>
-          </div>
+          <MainHeader title="Workspace" subtitle="Select a directory to discover Git repositories" />
 
-          <div class="workspace-body" v-loading="scanning" element-loading-text="Scanning repositories..." element-loading-background="rgba(255,255,255,0.6)">
+          <div class="workspace-body" v-loading="scanning" element-loading-text="Scanning repositories..."
+            element-loading-background="rgba(255,255,255,0.6)">
 
             <div class="toolbar">
               <div class="toolbar-left">
                 <!-- Workspace selector: choose from cached workspaces -->
-                <el-select
-                  v-model="workspaceRoot"
-                  placeholder="Select a workspace"
-                  class="toolbar-search"
-                  filterable
-                  clearable
-                  @change="onWorkspaceSelected"
-                >
-                  <el-option
-                    v-for="w in knownWorkspaces"
-                    :key="w.root"
-                    :label="w.root"
-                    :value="w.root"
-                  />
+                <el-select v-model="workspaceRoot" placeholder="Select a workspace" class="toolbar-search" filterable
+                  clearable @change="onWorkspaceSelected">
+                  <el-option v-for="w in knownWorkspaces" :key="w.root" :label="w.root" :value="w.root" />
                 </el-select>
+                <el-switch v-model="workspaceViewMode" :active-value="'details'" :inactive-value="'operations'"
+                  style="margin-left: 12px" />
+                <span style="margin-left: 8px;">show details</span>
               </div>
               <div class="toolbar-actions">
-              <el-button @click="chooseWorkspaceRoot" :disabled="scanning">Choose Directory</el-button>
-              <el-button type="primary" @click="scanWorkspace" :disabled="!workspaceRoot || scanning" :loading="scanning">Scan</el-button>
+                <el-button @click="chooseWorkspaceRoot" :disabled="scanning">Choose Directory</el-button>
+                <el-button type="primary" @click="scanWorkspace" :disabled="!workspaceRoot || scanning"
+                  :loading="scanning">Scan</el-button>
               </div>
             </div>
 
-          <template v-if="repos.length">
-            <el-collapse v-if="workspaceViewMode === 'details'" v-model="activeRepoPanels">
-              <el-collapse-item
-                v-for="repo in repos"
-                :key="repo.path"
-                :name="repo.path"
-              >
-                <template #title>
-                  <div class="repo-summary">
-                    <div class="repo-title">{{ repo.name }}</div>
-                    <div class="repo-meta">
-                      <span class="repo-branch">Branch: {{ repo.branch || 'unknown' }}</span>
-                      <span class="status-sep">|</span>
-                      <span class="repo-path">{{ repo.path }}</span>
+            <template v-if="repos.length">
+              <el-collapse v-if="workspaceViewMode === 'details'" v-model="activeRepoPanels">
+                <el-collapse-item v-for="repo in repos" :key="repo.path" :name="repo.path">
+                  <template #title>
+                    <div class="repo-summary">
+                      <div class="repo-title">{{ repo.name }}</div>
+                      <div class="repo-meta">
+                        <span class="repo-branch">Branch: {{ repo.branch || 'unknown' }}</span>
+                        <span class="status-sep">|</span>
+                        <span class="repo-path">{{ repo.path }}</span>
+                      </div>
+                      <div class="repo-flags">
+                        <span v-if="repo.unstaged" class="repo-flag flag-unstaged">Unstaged</span>
+                        <span v-if="repo.ahead" class="repo-flag flag-ahead">Ahead</span>
+                        <span v-if="repo.behind" class="repo-flag flag-behind">Behind</span>
+                        <span v-if="!repo.unstaged && !repo.ahead && !repo.behind"
+                          class="repo-flag flag-clean">Clean</span>
+                      </div>
                     </div>
+                  </template>
+                  <div class="repo-detail">
+                    <div class="repo-detail-row"><span class="label">Repository</span><span class="value">{{ repo.name
+                        }}</span></div>
+                    <div class="repo-detail-row"><span class="label">Path</span><span class="value">{{ repo.path
+                        }}</span></div>
+                    <div class="repo-detail-row"><span class="label">Branch</span><span class="value">{{ repo.branch ||
+                        'unknown'
+                        }}</span></div>
+                    <div class="repo-detail-row"><span class="label">Status</span><span class="value">
+                        <span v-if="repo.unstaged" class="repo-flag flag-unstaged">Unstaged</span>
+                        <span v-if="repo.ahead" class="repo-flag flag-ahead">Ahead</span>
+                        <span v-if="repo.behind" class="repo-flag flag-behind">Behind</span>
+                        <span v-if="!repo.unstaged && !repo.ahead && !repo.behind"
+                          class="repo-flag flag-clean">Clean</span>
+                      </span></div>
+                  </div>
+                </el-collapse-item>
+              </el-collapse>
+              <el-table v-else :data="repos" border row-key="path" @selection-change="onRepoSelectionChange">
+                <el-table-column type="selection" width="48" />
+                <el-table-column prop="name" label="Repository" min-width="200" />
+                <el-table-column label="Origin" min-width="320">
+                  <template #default="{ row }">
+                    <span>{{ row.origin || 'no remote' }}</span>
+                  </template>
+                </el-table-column>
+                <el-table-column prop="branch" label="Branch" width="160">
+                  <template #default="{ row }">
+                    <span>{{ row.branch || 'unknown' }}</span>
+                  </template>
+                </el-table-column>
+                <el-table-column label="Status" min-width="220">
+                  <template #default="{ row }">
                     <div class="repo-flags">
-                      <span v-if="repo.unstaged" class="repo-flag flag-unstaged">Unstaged</span>
-                      <span v-if="repo.ahead" class="repo-flag flag-ahead">Ahead</span>
-                      <span v-if="repo.behind" class="repo-flag flag-behind">Behind</span>
-                      <span v-if="!repo.unstaged && !repo.ahead && !repo.behind" class="repo-flag flag-clean">Clean</span>
+                      <span v-if="row.unstaged" class="repo-flag flag-unstaged">Unstaged</span>
+                      <span v-if="row.ahead" class="repo-flag flag-ahead">Ahead</span>
+                      <span v-if="row.behind" class="repo-flag flag-behind">Behind</span>
+                      <span v-if="!row.unstaged && !row.ahead && !row.behind" class="repo-flag flag-clean">Clean</span>
                     </div>
-                  </div>
-                </template>
-                <div class="repo-detail">
-                  <div class="repo-detail-row"><span class="label">Repository</span><span class="value">{{ repo.name }}</span></div>
-                  <div class="repo-detail-row"><span class="label">Path</span><span class="value">{{ repo.path }}</span></div>
-                  <div class="repo-detail-row"><span class="label">Branch</span><span class="value">{{ repo.branch || 'unknown' }}</span></div>
-                  <div class="repo-detail-row"><span class="label">Status</span><span class="value">
-                    <span v-if="repo.unstaged" class="repo-flag flag-unstaged">Unstaged</span>
-                    <span v-if="repo.ahead" class="repo-flag flag-ahead">Ahead</span>
-                    <span v-if="repo.behind" class="repo-flag flag-behind">Behind</span>
-                    <span v-if="!repo.unstaged && !repo.ahead && !repo.behind" class="repo-flag flag-clean">Clean</span>
-                  </span></div>
-                </div>
-              </el-collapse-item>
-            </el-collapse>
-            <el-table v-else :data="repos" border row-key="path" @selection-change="onRepoSelectionChange">
-              <el-table-column type="selection" width="48" />
-              <el-table-column prop="name" label="Repository" min-width="200" />
-              <el-table-column label="Origin" min-width="320">
-                <template #default="{ row }">
-                  <span>{{ row.origin || 'no remote' }}</span>
-                </template>
-              </el-table-column>
-              <el-table-column prop="branch" label="Branch" width="160">
-                <template #default="{ row }">
-                  <span>{{ row.branch || 'unknown' }}</span>
-                </template>
-              </el-table-column>
-              <el-table-column label="Status" min-width="220">
-                <template #default="{ row }">
-                  <div class="repo-flags">
-                    <span v-if="row.unstaged" class="repo-flag flag-unstaged">Unstaged</span>
-                    <span v-if="row.ahead" class="repo-flag flag-ahead">Ahead</span>
-                    <span v-if="row.behind" class="repo-flag flag-behind">Behind</span>
-                    <span v-if="!row.unstaged && !row.ahead && !row.behind" class="repo-flag flag-clean">Clean</span>
-                  </div>
-                </template>
-              </el-table-column>
-              <el-table-column label="Operations" width="160">
-                <template #default="{ row }">
-                  <el-button size="small" type="primary" plain @click="openRepoDetails(row.path)">Details</el-button>
-                </template>
-              </el-table-column>
-            </el-table>
-          </template>
-          <el-empty v-else description="No repositories found" />
+                  </template>
+                </el-table-column>
+                <el-table-column label="Operations" width="160">
+                  <template #default="{ row }">
+                    <el-button size="small" type="primary" plain @click="openRepoDetails(row.path)">Details</el-button>
+                  </template>
+                </el-table-column>
+              </el-table>
+            </template>
+            <el-empty v-else description="No repositories found" />
           </div>
         </template>
         <template v-else-if="activeMenu === 'maven'">
-          <div class="section-header">
-            <h2>Maven Config Files (~/.m2/config)</h2>
-            <span class="muted">Preview is enabled for .xml files</span>
-          </div>
-
-          <!-- Toolbar: search on the left, refresh/add buttons on the right -->
+          <MainHeader title="Maven Configuration" subtitle="Configure and Preview Maven" />
           <div class="toolbar">
-            <el-input
-              v-model="search"
-              placeholder="Search by file name"
-              clearable
-              class="toolbar-search"
-            />
+            <el-input v-model="search" placeholder="Search by file name" clearable class="toolbar-search" />
             <div class="toolbar-actions">
               <el-button @click="refresh" :disabled="!hasM2">Refresh</el-button>
               <el-button type="primary" @click="openAddDialog" :disabled="!hasM2">Add</el-button>
@@ -236,7 +223,9 @@
         <div class="settings-header">
           <h2>Settings</h2>
           <el-button circle size="small" class="settings-close" @click="closeSettings" :title="'Close settings'">
-            <el-icon><Close /></el-icon>
+            <el-icon>
+              <Close />
+            </el-icon>
           </el-button>
         </div>
         <div class="settings-content">
@@ -244,13 +233,15 @@
         </div>
       </div>
       <!-- Notifications overlay covering sidebar and main -->
-      
+
     </el-container>
     <el-footer height="28px" class="statusbar">
       <div class="status-left">
         <!-- OS Chip -->
         <span class="status-chip">
-          <el-icon><Monitor /></el-icon>
+          <el-icon>
+            <Monitor />
+          </el-icon>
           <span class="chip-text">{{ osText }}</span>
         </span>
         <span class="status-sep">•</span>
@@ -258,7 +249,9 @@
         <el-popover trigger="click" placement="top" width="260">
           <template #reference>
             <span :class="['status-chip', cpuStatusClass]">
-              <el-icon><Cpu /></el-icon>
+              <el-icon>
+                <Cpu />
+              </el-icon>
               <span class="chip-text">{{ cpuText }}</span>
             </span>
           </template>
@@ -273,7 +266,9 @@
         <el-popover trigger="click" placement="top" width="280">
           <template #reference>
             <span :class="['status-chip', memStatusClass]">
-              <el-icon><TrendCharts /></el-icon>
+              <el-icon>
+                <TrendCharts />
+              </el-icon>
               <span class="chip-text">{{ memText }}</span>
               <span class="mini-meter">
                 <span class="mini-meter-fill" :style="{ width: memMeterWidth, backgroundColor: memColor }" />
@@ -291,8 +286,11 @@
       </div>
       <div class="status-right no-drag">
         <el-tooltip content="Keyboard Shortcuts" placement="top">
-          <el-button class="shortcut-btn" size="small" type="text" @click="openShortcuts" :title="'Show keyboard shortcuts'">
-            <el-icon><ArrowLeft /></el-icon>
+          <el-button class="shortcut-btn" size="small" type="text" @click="openShortcuts"
+            :title="'Show keyboard shortcuts'">
+            <el-icon>
+              <ArrowLeft />
+            </el-icon>
             <span class="shortcut-text">Shortcuts</span>
           </el-button>
         </el-tooltip>
@@ -300,12 +298,8 @@
     </el-footer>
     <!-- Quick Search dialog (English-only comments) -->
     <el-dialog v-model="searchOpen" title="Quick Search" width="420px" :close-on-click-modal="true" destroy-on-close>
-      <el-input
-        ref="quickInputRef"
-        v-model="searchTerm"
-        placeholder="Type 'mvn' or 'env' and press Enter"
-        @keyup.enter="submitQuickSearch"
-      />
+      <el-input ref="quickInputRef" v-model="searchTerm" placeholder="Type 'mvn' or 'env' and press Enter"
+        @keyup.enter="submitQuickSearch" />
       <template #footer>
         <el-button @click="closeSearch">Cancel</el-button>
         <el-button type="primary" @click="submitQuickSearch">Go</el-button>
@@ -318,7 +312,9 @@
         <!-- Modern shortcut card: Quick Search -->
         <div class="shortcut-item">
           <div class="shortcut-left">
-            <el-icon class="shortcut-icon"><Search /></el-icon>
+            <el-icon class="shortcut-icon">
+              <Search />
+            </el-icon>
             <div class="shortcut-text">
               <div class="shortcut-title">Quick Search</div>
               <div class="shortcut-sub">Open overlay and type aliases like mvn / env</div>
@@ -333,7 +329,9 @@
         <!-- Modern shortcut card: Settings -->
         <div class="shortcut-item">
           <div class="shortcut-left">
-            <el-icon class="shortcut-icon"><Setting /></el-icon>
+            <el-icon class="shortcut-icon">
+              <Setting />
+            </el-icon>
             <div class="shortcut-text">
               <div class="shortcut-title">Open Settings</div>
               <div class="shortcut-sub">Show settings overlay</div>
@@ -348,7 +346,9 @@
         <!-- Modern shortcut card: Close overlays -->
         <div class="shortcut-item">
           <div class="shortcut-left">
-            <el-icon class="shortcut-icon"><Close /></el-icon>
+            <el-icon class="shortcut-icon">
+              <Close />
+            </el-icon>
             <div class="shortcut-text">
               <div class="shortcut-title">Close Overlay</div>
               <div class="shortcut-sub">Dismiss Search or Settings</div>
@@ -361,7 +361,9 @@
         <!-- Modern shortcut card: Submit Search -->
         <div class="shortcut-item">
           <div class="shortcut-left">
-            <el-icon class="shortcut-icon"><List /></el-icon>
+            <el-icon class="shortcut-icon">
+              <List />
+            </el-icon>
             <div class="shortcut-text">
               <div class="shortcut-title">Submit Search</div>
               <div class="shortcut-sub">Confirm and navigate</div>
@@ -841,14 +843,22 @@ onMounted(() => {
 <style>
 :root {
   /* App theme: unify header, sidebar active, and Element Plus primary */
-  --el-color-primary: #6366f1;          /* indigo-500 */
-  --el-color-primary-dark-2: #4f46e5;   /* indigo-600 */
-  --el-color-primary-light-3: #a5b4fc;  /* indigo-300 */
-  --el-color-primary-light-5: #c7d2fe;  /* indigo-200 */
-  --el-color-primary-light-7: #e0e7ff;  /* indigo-100 */
-  --el-color-primary-light-8: #eef2ff;  /* indigo-50 */
-  --el-color-primary-light-9: #f5f7ff;  /* near-white for subtle hovers */
+  --el-color-primary: #6366f1;
+  /* indigo-500 */
+  --el-color-primary-dark-2: #4f46e5;
+  /* indigo-600 */
+  --el-color-primary-light-3: #a5b4fc;
+  /* indigo-300 */
+  --el-color-primary-light-5: #c7d2fe;
+  /* indigo-200 */
+  --el-color-primary-light-7: #e0e7ff;
+  /* indigo-100 */
+  --el-color-primary-light-8: #eef2ff;
+  /* indigo-50 */
+  --el-color-primary-light-9: #f5f7ff;
+  /* near-white for subtle hovers */
 }
+
 .titlebar {
   /* Make the entire header draggable like a native title bar */
   -webkit-app-region: drag;
@@ -860,6 +870,7 @@ onMounted(() => {
   background: linear-gradient(90deg, #3b82f6 0%, #8b5cf6 100%);
   color: #fff;
 }
+
 .titlebar-inner {
   display: grid;
   grid-template-columns: 1fr auto 1fr;
@@ -869,24 +880,32 @@ onMounted(() => {
   padding-left: 72px;
   padding-right: 12px;
 }
+
 .titlebar-search {
   width: 80%;
   max-width: 1000px;
   min-width: 520px;
 }
+
 .titlebar-actions {
   justify-self: end;
 }
-.titlebar-actions .icon-btn { padding: 0 6px; }
+
+.titlebar-actions .icon-btn {
+  padding: 0 6px;
+}
+
 .settings-btn {
   display: inline-flex;
   align-items: center;
   gap: 6px;
 }
+
 .settings-text {
   font-size: 13px;
   color: #fff;
 }
+
 .search-input .el-input__wrapper {
   height: 34px;
   border-radius: 17px;
@@ -894,8 +913,15 @@ onMounted(() => {
   border-color: transparent;
   box-shadow: none;
 }
-.search-input .el-input__inner { color: #fff; }
-.search-input .el-input__inner::placeholder { color: rgba(255, 255, 255, 0.85); }
+
+.search-input .el-input__inner {
+  color: #fff;
+}
+
+.search-input .el-input__inner::placeholder {
+  color: rgba(255, 255, 255, 0.85);
+}
+
 .kbd-hint {
   display: inline-block;
   padding: 0 6px;
@@ -907,65 +933,138 @@ onMounted(() => {
   font-size: 12px;
   line-height: 18px;
 }
+
 .no-drag {
   /* Allow interactive elements to be clickable within a draggable titlebar */
   -webkit-app-region: no-drag;
 }
+
 .brand {
   font-weight: 600;
   color: #fff;
 }
+
 .aside {
-  border-right: 0; /* use el-aside to render the single separator line */
+  border-right: 0;
+  /* use el-aside to render the single separator line */
   height: 100%;
   overflow: hidden;
   transition: width 0.2s ease;
   background: linear-gradient(180deg, #f9fafb, #f3f4f6);
 }
+
 .aside-title {
   font-weight: 600;
   padding: 10px 12px 6px 12px;
   color: #333;
 }
+
 /* Restore thin grey separator line via el-aside to avoid disappearance */
 .el-aside {
   border-right: 1px solid #e6e6e6;
 }
+
 .aside .el-menu,
 .aside .el-menu-item {
   border-right: 0;
 }
-.aside .el-menu { background: transparent; padding: 8px 4px; }
-.aside .el-menu-item { height: 34px; line-height: 34px; padding: 0 12px; font-size: 13px; margin: 4px 8px; border-radius: 8px; position: relative; transition: background 0.15s ease, color 0.15s ease; }
-.aside .el-menu-item:hover { background: rgba(0, 0, 0, 0.04); }
-.aside .el-menu-item.is-active { background: var(--el-color-primary-light-8); color: #1f2937; }
-.aside .el-menu-item.is-active::before { content: ''; position: absolute; left: 0; top: 6px; bottom: 6px; width: 3px; border-radius: 2px; background: var(--el-color-primary); }
-.aside .el-menu-item.is-active .el-icon { color: var(--el-color-primary-dark-2); }
-.aside .el-menu-item:focus-visible { outline: 2px solid #93c5fd; outline-offset: 2px; }
-.aside.collapsed .el-menu { padding: 8px 0; }
-.aside.collapsed .el-menu-item { padding: 0 10px; margin: 6px; justify-content: center; }
-.aside.collapsed .el-menu-item.is-active::before { left: 0; top: 4px; bottom: 4px; width: 2px; }
-.aside .el-menu { padding: 6px 0; }
-.aside .el-menu-item { height: 34px; line-height: 34px; padding: 0 12px; font-size: 13px; }
+
+.aside .el-menu {
+  background: transparent;
+  padding: 8px 4px;
+}
+
+.aside .el-menu-item {
+  height: 34px;
+  line-height: 34px;
+  padding: 0 12px;
+  font-size: 13px;
+  margin: 4px 8px;
+  border-radius: 8px;
+  position: relative;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.aside .el-menu-item:hover {
+  background: rgba(0, 0, 0, 0.04);
+}
+
+.aside .el-menu-item.is-active {
+  background: var(--el-color-primary-light-8);
+  color: #1f2937;
+}
+
+.aside .el-menu-item.is-active::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 6px;
+  bottom: 6px;
+  width: 3px;
+  border-radius: 2px;
+  background: var(--el-color-primary);
+}
+
+.aside .el-menu-item.is-active .el-icon {
+  color: var(--el-color-primary-dark-2);
+}
+
+.aside .el-menu-item:focus-visible {
+  outline: 2px solid #93c5fd;
+  outline-offset: 2px;
+}
+
+.aside.collapsed .el-menu {
+  padding: 8px 0;
+}
+
+.aside.collapsed .el-menu-item {
+  padding: 0 10px;
+  margin: 6px;
+  justify-content: center;
+}
+
+.aside.collapsed .el-menu-item.is-active::before {
+  left: 0;
+  top: 4px;
+  bottom: 4px;
+  width: 2px;
+}
+
+.aside .el-menu {
+  padding: 6px 0;
+}
+
+.aside .el-menu-item {
+  height: 34px;
+  line-height: 34px;
+  padding: 0 12px;
+  font-size: 13px;
+}
+
 .aside .el-menu-item span {
   display: inline-block;
   white-space: nowrap;
   overflow: hidden;
   transition: opacity 0.2s ease, max-width 0.2s ease, margin 0.2s ease;
 }
+
 .aside.collapsed .el-menu-item span {
   opacity: 0;
   max-width: 0;
   margin: 0;
 }
+
 .aside .el-menu-item .el-icon {
   margin-right: 8px;
   font-size: 16px;
   transition: margin 0.2s ease;
 }
+
 .aside.collapsed .el-menu-item .el-icon {
   margin-right: 0;
 }
+
 .aside-toggle {
   position: absolute;
   top: 50%;
@@ -975,15 +1074,23 @@ onMounted(() => {
   pointer-events: none;
   transition: left 0.2s ease, opacity 0.15s ease-in-out;
 }
+
 /* Icons and action buttons should be readable on gradient */
-.titlebar .el-icon { color: #fff; }
-.titlebar-actions .el-button { color: #fff; }
+.titlebar .el-icon {
+  color: #fff;
+}
+
+.titlebar-actions .el-button {
+  color: #fff;
+}
+
 .section-header {
   display: flex;
   align-items: baseline;
   gap: 12px;
   margin-bottom: 12px;
 }
+
 .subnav {
   padding: 0 12px;
   margin-bottom: 8px;
@@ -996,19 +1103,23 @@ onMounted(() => {
   border: 1px solid #eee;
   padding: 12px;
 }
+
 .toolbar {
   display: flex;
   justify-content: space-between;
   align-items: center;
   margin: 12px 0;
 }
+
 .toolbar-search {
   width: 280px;
 }
+
 .toolbar-actions {
   display: flex;
   gap: 8px;
 }
+
 .app-root {
   position: fixed;
   inset: 0;
@@ -1016,6 +1127,7 @@ onMounted(() => {
   flex-direction: column;
   overflow: hidden;
 }
+
 .content-container {
   flex: 1;
   overflow: hidden;
@@ -1023,44 +1135,56 @@ onMounted(() => {
 }
 
 /* Show toggle only when hovering sidebar or the toggle itself */
-.aside:hover + .aside-toggle,
+.aside:hover+.aside-toggle,
 .aside-toggle:hover {
   opacity: 1;
   pointer-events: auto;
 }
+
 .main-scroll {
   height: 100%;
   overflow: auto;
-  border-left: 0; /* ensure no extra border on main content */
-  scrollbar-width: none; /* Firefox */
-  -ms-overflow-style: none; /* IE/Edge */
+  border-left: 0;
+  /* ensure no extra border on main content */
+  scrollbar-width: none;
+  /* Firefox */
+  -ms-overflow-style: none;
+  /* IE/Edge */
 }
-.main-scroll::-webkit-scrollbar { /* Chrome/Safari */
+
+.main-scroll::-webkit-scrollbar {
+  /* Chrome/Safari */
   width: 0;
   height: 0;
   display: none;
 }
+
 .env-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 12px;
 }
+
 .env-item {
   border: 1px solid #eee;
   border-radius: 6px;
   padding: 10px 12px;
   background: #fafafa;
 }
+
 .env-label {
   font-weight: 600;
   margin-bottom: 6px;
 }
+
 .env-value {
   color: #333;
 }
+
 .statusbar {
   border-top: 1px solid #eee;
-  background: #f5f5f5; /* light gray background for footer status bar */
+  background: #f5f5f5;
+  /* light gray background for footer status bar */
   font-size: 12px;
   color: #666;
   display: flex;
@@ -1068,8 +1192,19 @@ onMounted(() => {
   gap: 16px;
   padding: 0 8px;
 }
-.status-left { display: flex; align-items: center; gap: 8px; }
-.status-right { margin-left: auto; display: flex; align-items: center; }
+
+.status-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.status-right {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+}
+
 .status-chip {
   display: inline-flex;
   align-items: center;
@@ -1080,10 +1215,22 @@ onMounted(() => {
   background: #fff;
   color: #333;
 }
-.chip-text { line-height: 24px; }
-.status-sep { color: #999; }
-.statusbar :deep(.el-icon) { color: #666; }
-.statusbar :deep(.el-button) { color: #666; }
+
+.chip-text {
+  line-height: 24px;
+}
+
+.status-sep {
+  color: #999;
+}
+
+.statusbar :deep(.el-icon) {
+  color: #666;
+}
+
+.statusbar :deep(.el-button) {
+  color: #666;
+}
 
 /* Mini meter inside memory chip */
 .mini-meter {
@@ -1094,6 +1241,7 @@ onMounted(() => {
   overflow: hidden;
   display: inline-block;
 }
+
 .mini-meter-fill {
   display: block;
   height: 100%;
@@ -1102,16 +1250,34 @@ onMounted(() => {
 }
 
 /* Threshold coloring for chip text */
-.metric-warn .chip-text { color: #d97706; }
-.metric-ok .chip-text { color: #333; }
+.metric-warn .chip-text {
+  color: #d97706;
+}
+
+.metric-ok .chip-text {
+  color: #333;
+}
 
 /* Popover content */
-.popover-content { display: grid; gap: 6px; }
-.popover-title { font-weight: 600; font-size: 13px; }
-.popover-meta { font-size: 12px; color: #666; }
+.popover-content {
+  display: grid;
+  gap: 6px;
+}
+
+.popover-title {
+  font-weight: 600;
+  font-size: 13px;
+}
+
+.popover-meta {
+  font-size: 12px;
+  color: #666;
+}
+
 .shortcut-text {
   font-size: 12px;
 }
+
 .shortcut-btn .shortcut-text {
   max-width: 0;
   opacity: 0;
@@ -1120,16 +1286,19 @@ onMounted(() => {
   overflow: hidden;
   white-space: nowrap;
 }
+
 .shortcut-btn:hover .shortcut-text {
   max-width: 120px;
   opacity: 1;
   margin-left: 6px;
 }
+
 .shortcut-list {
   display: grid;
   gap: 12px;
   padding: 6px;
 }
+
 .shortcut-item {
   display: flex;
   align-items: center;
@@ -1139,31 +1308,38 @@ onMounted(() => {
   border-radius: 10px;
   background: #fff;
 }
+
 .shortcut-left {
   display: flex;
   align-items: center;
   gap: 10px;
 }
+
 .shortcut-icon {
   color: #666;
 }
+
 .shortcut-text {
   display: flex;
   flex-direction: column;
   gap: 2px;
 }
+
 .shortcut-title {
   font-weight: 600;
 }
+
 .shortcut-sub {
   color: #777;
   font-size: 12px;
 }
+
 .shortcut-keys {
   display: flex;
   align-items: center;
   gap: 6px;
 }
+
 .kbd-key {
   display: inline-flex;
   align-items: center;
@@ -1178,15 +1354,19 @@ onMounted(() => {
   font-size: 12px;
   color: #333;
 }
-.plus, .slash {
+
+.plus,
+.slash {
   color: #999;
   padding: 0 4px;
 }
+
 /* Hide drawer body scrollbar for cleaner look while preserving scroll */
 .el-drawer__body {
   scrollbar-width: none;
   -ms-overflow-style: none;
 }
+
 .el-drawer__body::-webkit-scrollbar {
   width: 0;
   height: 0;
@@ -1202,6 +1382,7 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
 }
+
 .settings-header {
   height: 52px;
   display: flex;
@@ -1210,6 +1391,7 @@ onMounted(() => {
   border-bottom: 1px solid #eee;
   padding: 0 12px;
 }
+
 .settings-content {
   flex: 1;
   overflow: auto;
@@ -1217,18 +1399,72 @@ onMounted(() => {
 }
 
 /* Notifications drawer styles */
-.notifications-toolbar { display: flex; justify-content: flex-end; margin-bottom: 8px; }
-.notifications-actions { display: inline-flex; align-items: center; gap: 8px; }
-.notifications-list { display: flex; flex-direction: column; gap: 8px; }
-.notification-item { border: 1px solid #eee; border-radius: 6px; padding: 8px 10px; }
-.notification-item .notif-row { display: flex; justify-content: space-between; align-items: baseline; }
-.notif-title { font-weight: 600; color: #333; }
-.notif-meta { font-size: 12px; color: #888; }
-.notif-message { margin-top: 6px; color: #444; line-height: 1.4; }
-.notification-item.lvl-warning { border-color: #f59e0b; background: #fff7ed; }
-.notification-item.lvl-error { border-color: #ef4444; background: #fef2f2; }
-.notification-item.lvl-info { border-color: #93c5fd; background: #eff6ff; }
-.notification-item.lvl-success { border-color: #10b981; background: #ecfdf5; }
+.notifications-toolbar {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 8px;
+}
+
+.notifications-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.notifications-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.notification-item {
+  border: 1px solid #eee;
+  border-radius: 6px;
+  padding: 8px 10px;
+}
+
+.notification-item .notif-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+}
+
+.notif-title {
+  font-weight: 600;
+  color: #333;
+}
+
+.notif-meta {
+  font-size: 12px;
+  color: #888;
+}
+
+.notif-message {
+  margin-top: 6px;
+  color: #444;
+  line-height: 1.4;
+}
+
+.notification-item.lvl-warning {
+  border-color: #f59e0b;
+  background: #fff7ed;
+}
+
+.notification-item.lvl-error {
+  border-color: #ef4444;
+  background: #fef2f2;
+}
+
+.notification-item.lvl-info {
+  border-color: #93c5fd;
+  background: #eff6ff;
+}
+
+.notification-item.lvl-success {
+  border-color: #10b981;
+  background: #ecfdf5;
+}
+
 /* Global hidden scrollbars for common containers */
 .app-root,
 .content-container,
@@ -1237,6 +1473,7 @@ onMounted(() => {
   scrollbar-width: none;
   -ms-overflow-style: none;
 }
+
 .app-root::-webkit-scrollbar,
 .content-container::-webkit-scrollbar,
 .el-dialog__body::-webkit-scrollbar,
@@ -1246,7 +1483,9 @@ onMounted(() => {
   display: none;
 }
 
-.header-actions { margin-left: auto; }
+.header-actions {
+  margin-left: auto;
+}
 
 /* Workspace repo collapse styles */
 .repo-summary {
@@ -1254,11 +1493,13 @@ onMounted(() => {
   flex-direction: column;
   gap: 3px;
 }
+
 .repo-title {
   font-weight: 600;
   color: #333;
   font-size: 16px;
 }
+
 .repo-meta {
   display: flex;
   align-items: center;
@@ -1266,21 +1507,46 @@ onMounted(() => {
   color: #666;
   font-size: 12px;
 }
-.repo-branch { color: #444; }
-.repo-path { color: #777; }
+
+.repo-branch {
+  color: #444;
+}
+
+.repo-path {
+  color: #777;
+}
+
 .repo-detail {
   display: grid;
   grid-template-columns: 160px 1fr;
   gap: 6px 10px;
   padding: 6px 6px;
 }
-.repo-detail-row { display: contents; }
-.repo-detail .label { color: #666; }
-.repo-detail .value { color: #333; }
+
+.repo-detail-row {
+  display: contents;
+}
+
+.repo-detail .label {
+  color: #666;
+}
+
+.repo-detail .value {
+  color: #333;
+}
 
 /* Repo status flags */
-.repo-flags { display: flex; align-items: center; gap: 4px; margin-top: 2px; }
-.repo-summary .repo-flags { margin-top: 6px; }
+.repo-flags {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 2px;
+}
+
+.repo-summary .repo-flags {
+  margin-top: 6px;
+}
+
 .repo-flag {
   display: inline-flex;
   align-items: center;
@@ -1291,20 +1557,54 @@ onMounted(() => {
   border: 1px solid #e5e7eb;
   font-size: 11px;
 }
-.flag-unstaged { color: #b45309; background: #fff7ed; border-color: #fed7aa; }
-.flag-ahead { color: #065f46; background: #ecfdf5; border-color: #a7f3d0; }
-.flag-behind { color: #7f1d1d; background: #fef2f2; border-color: #fecaca; }
-.flag-clean { color: #374151; background: #f9fafb; border-color: #e5e7eb; }
+
+.flag-unstaged {
+  color: #b45309;
+  background: #fff7ed;
+  border-color: #fed7aa;
+}
+
+.flag-ahead {
+  color: #065f46;
+  background: #ecfdf5;
+  border-color: #a7f3d0;
+}
+
+.flag-behind {
+  color: #7f1d1d;
+  background: #fef2f2;
+  border-color: #fecaca;
+}
+
+.flag-clean {
+  color: #374151;
+  background: #f9fafb;
+  border-color: #e5e7eb;
+}
 
 /* Add spacing between collapse items so status and next panel don't touch */
-.el-collapse-item { margin-bottom: 12px; }
+.el-collapse-item {
+  margin-bottom: 12px;
+}
+
 /* Add spacing between adjacent collapse items when collapsed */
-.el-collapse-item + .el-collapse-item { margin-top: 12px; }
+.el-collapse-item+.el-collapse-item {
+  margin-top: 12px;
+}
+
 /* Compact header/content padding */
-.el-collapse-item__header { padding: 6px 10px; }
-.el-collapse-item__content { padding: 6px 10px; }
+.el-collapse-item__header {
+  padding: 6px 10px;
+}
+
+.el-collapse-item__content {
+  padding: 6px 10px;
+}
+
 /* Extra spacing below header when collapsed */
-.el-collapse-item:not(.is-active) > .el-collapse-item__header { margin-bottom: 10px; }
+.el-collapse-item:not(.is-active)>.el-collapse-item__header {
+  margin-bottom: 10px;
+}
 
 /* Modern style for Operations table (English-only comments) */
 .modern-table {
@@ -1313,15 +1613,18 @@ onMounted(() => {
   box-shadow: none;
   background: transparent;
 }
+
 /* Ensure Element Plus table root has no background/border */
 .modern-table :deep(.el-table) {
   background: transparent;
   border: none;
 }
+
 /* Header wrapper transparent for open style */
 .modern-table :deep(.el-table__header-wrapper) {
   background: transparent;
 }
+
 /* Remove vertical separators and extra patches */
 .modern-table :deep(.el-table__inner-wrapper)::before,
 .modern-table :deep(.el-table__border-right-patch),
@@ -1329,6 +1632,7 @@ onMounted(() => {
 .modern-table :deep(.el-table--border::after) {
   display: none;
 }
+
 /* Header cells: only bottom line */
 .modern-table :deep(th.el-table__cell) {
   font-weight: 600;
@@ -1338,28 +1642,34 @@ onMounted(() => {
   border-right: 0 !important;
   border-bottom: 1px solid rgba(0, 0, 0, 0.08);
 }
+
 /* Body cells: only bottom line, no vertical lines */
 .modern-table :deep(.el-table__cell) {
   padding: 10px 12px;
   border-right: 0 !important;
   border-bottom: 1px solid rgba(0, 0, 0, 0.06);
 }
+
 /* Stripe rows with very light tone */
 .modern-table :deep(.el-table--striped .el-table__body tr.el-table__row--striped td) {
   background-color: rgba(0, 0, 0, 0.02);
 }
+
 /* Hover and current row remain subtle */
 .modern-table :deep(.el-table__row:hover > td) {
   background-color: var(--el-color-primary-light-9);
 }
+
 .modern-table :deep(.el-table__body tr.current-row > td) {
   background-color: var(--el-color-primary-light-8);
 }
+
 /* Selection checkbox reflects theme */
 .modern-table :deep(.el-checkbox.is-checked .el-checkbox__inner) {
   background-color: var(--el-color-primary);
   border-color: var(--el-color-primary);
 }
+
 .modern-table :deep(.el-checkbox__inner:hover) {
   border-color: var(--el-color-primary);
 }

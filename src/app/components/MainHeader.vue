@@ -18,7 +18,7 @@ const { title, subtitle } = props;
 }
 
 .muted {
-  color: #888;
+  color: var(--el-color-primary);
   font-size: 12px;
   text-decoration: underline;
   text-underline-offset: 2px;
