@@ -29,7 +29,7 @@ const createWindow = () => {
     minWidth: 1024,
     minHeight: 640,
     // On macOS, use hiddenInset so the traffic lights sit with the web UI
-    ...(process.platform === 'darwin' ? { titleBarStyle: 'hiddenInset' } : {}),
+    // ...(process.platform === 'darwin' ? { titleBarStyle: 'hiddenInset' } : {}),
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
     },
@@ -45,7 +45,7 @@ const createWindow = () => {
   }
 
   // Open the DevTools.
-  // mainWindow.webContents.openDevTools();
+  mainWindow.webContents.openDevTools();
 };
 
 // This method will be called when Electron has finished

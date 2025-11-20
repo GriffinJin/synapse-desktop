@@ -1,9 +1,6 @@
 <template>
   <div>
-    <div class="section-header">
-      <h2>Environments</h2>
-      <span class="muted">Show versions of Java, Python, and Maven</span>
-    </div>
+    <PageHeader title="Environments" subtitle="Show versions of Java, Python, and Maven" />
     <div class="env-grid">
       <div class="env-item">
         <div class="env-label">Java</div>
@@ -29,6 +26,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue';
+import PageHeader from '../components/PageHeader.vue';
 
 type EnvVersions = { java: string | null; python: string | null; mvn: string | null };
 const envVersions = ref<EnvVersions | null>(null);

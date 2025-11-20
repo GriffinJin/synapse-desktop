@@ -1,20 +1,21 @@
 <template>
   <div>
-    <MainHeader title="Workspace" subtitle="Select a directory to discover Git repositories" />
-    <div class="workspace-body" v-loading="scanning" element-loading-text="Scanning repositories..." element-loading-background="rgba(255,255,255,0.6)">
-      <div class="toolbar">
-        <div class="toolbar-left">
-          <el-select v-model="workspaceRoot" placeholder="Select a workspace" class="toolbar-search" filterable clearable @change="onWorkspaceSelected">
-            <el-option v-for="w in knownWorkspaces" :key="w.root" :label="w.root" :value="w.root" />
-          </el-select>
-          <el-switch v-model="workspaceViewMode" :active-value="'details'" :inactive-value="'operations'" style="margin-left: 12px" />
-          <span style="margin-left: 8px;">show details</span>
-        </div>
-        <div class="toolbar-actions">
-          <el-button @click="chooseWorkspaceRoot" :disabled="scanning">Choose Directory</el-button>
-          <el-button type="primary" @click="scanWorkspace" :disabled="!workspaceRoot || scanning" :loading="scanning">Scan</el-button>
-        </div>
-      </div>
+    <PageHeader title="Workspace" subtitle="Select a directory to discover Git repositories" />
+    <el-row justify="space-between" style="margin-bottom: 20px;">
+      <el-col :span="6">
+        <el-select v-model="workspaceRoot" placeholder="Select a workspace" class="toolbar-search" filterable clearable
+          @change="onWorkspaceSelected">
+          <el-option v-for="w in knownWorkspaces" :key="w.root" :label="w.root" :value="w.root" />
+        </el-select>
+      </el-col>
+      <el-col :span="6" style="text-align: end;">
+        <el-text>show details</el-text>
+        <el-switch v-model="workspaceViewMode" :active-value="'details'" :inactive-value="'operations'"
+          style="margin-left: 12px" />
+      </el-col>
+    </el-row>
+    <div class="workspace-body" v-loading="scanning" element-loading-text="Scanning repositories..."
+      element-loading-background="rgba(255,255,255,0.6)">
 
       <template v-if="repos.length">
         <el-collapse v-if="workspaceViewMode === 'details'" v-model="activeRepoPanels">
@@ -36,15 +37,19 @@
               </div>
             </template>
             <div class="repo-detail">
-              <div class="repo-detail-row"><span class="label">Repository</span><span class="value">{{ repo.name }}</span></div>
-              <div class="repo-detail-row"><span class="label">Path</span><span class="value">{{ repo.path }}</span></div>
-              <div class="repo-detail-row"><span class="label">Branch</span><span class="value">{{ repo.branch || 'unknown' }}</span></div>
+              <div class="repo-detail-row"><span class="label">Repository</span><span class="value">{{ repo.name
+                  }}</span></div>
+              <div class="repo-detail-row"><span class="label">Path</span><span class="value">{{ repo.path }}</span>
+              </div>
+              <div class="repo-detail-row"><span class="label">Branch</span><span class="value">{{ repo.branch ||
+                'unknown'
+                  }}</span></div>
               <div class="repo-detail-row"><span class="label">Status</span><span class="value">
-                <span v-if="repo.unstaged" class="repo-flag flag-unstaged">Unstaged</span>
-                <span v-if="repo.ahead" class="repo-flag flag-ahead">Ahead</span>
-                <span v-if="repo.behind" class="repo-flag flag-behind">Behind</span>
-                <span v-if="!repo.unstaged && !repo.ahead && !repo.behind" class="repo-flag flag-clean">Clean</span>
-              </span></div>
+                  <span v-if="repo.unstaged" class="repo-flag flag-unstaged">Unstaged</span>
+                  <span v-if="repo.ahead" class="repo-flag flag-ahead">Ahead</span>
+                  <span v-if="repo.behind" class="repo-flag flag-behind">Behind</span>
+                  <span v-if="!repo.unstaged && !repo.ahead && !repo.behind" class="repo-flag flag-clean">Clean</span>
+                </span></div>
             </div>
           </el-collapse-item>
         </el-collapse>
@@ -85,7 +90,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue';
-import MainHeader from '../components/MainHeader.vue';
+import PageHeader from '../components/PageHeader.vue';
 import { ElMessage, ElNotification } from 'element-plus';
 
 type RepoInfo = {
@@ -128,7 +133,7 @@ async function scanWorkspace() {
     repos.value = await (window as any).workspace?.scanGitRepos?.(workspaceRoot.value);
     try {
       await (window as any).workspaceCache?.set?.(workspaceRoot.value, repos.value);
-    } catch {}
+    } catch { }
     await refreshKnownWorkspaces();
     const count = Array.isArray(repos.value) ? repos.value.length : 0;
     if (count > 0) {

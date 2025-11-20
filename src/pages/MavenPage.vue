@@ -1,6 +1,6 @@
 <template>
   <div>
-    <MainHeader title="Maven Configuration" subtitle="Configure and Preview Maven" />
+    <PageHeader title="Maven Configuration" subtitle="Configure and Preview Maven" />
     <div class="toolbar">
       <el-input v-model="search" placeholder="Search by file name" clearable class="toolbar-search" />
       <div class="toolbar-actions">
@@ -60,7 +60,7 @@
 
 <script setup lang="ts">
 import { ref, computed } from 'vue';
-import MainHeader from '../components/MainHeader.vue';
+import PageHeader from '../components/PageHeader.vue';
 import { ElMessage } from 'element-plus';
 import { View } from '@element-plus/icons-vue';
 

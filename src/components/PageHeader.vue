@@ -14,7 +14,7 @@ const { title, subtitle } = props;
     display: flex;
     align-items: baseline;
     gap: 12px;
-    margin-bottom: 12px;
+    margin-bottom: 20px;
 }
 
 .muted {
