@@ -135,21 +135,21 @@ const memTotalGB = computed(() => {
 </script>
 
 <style>
-.statusbar { border-top: 1px solid #eee; background: #f5f5f5; font-size: 12px; color: #666; display: flex; align-items: center; gap: 16px; padding: 0 8px; }
+.statusbar { border-top: 1px solid var(--color-border); background: var(--color-statusbar-bg); font-size: 12px; color: var(--color-statusbar-text); display: flex; align-items: center; gap: 16px; padding: 0 8px; }
 .status-left { display: flex; align-items: center; gap: 8px; }
 .status-right { margin-left: auto; display: flex; align-items: center; }
-.status-chip { display: inline-flex; align-items: center; gap: 6px; padding: 2px 8px; border: 1px solid #eaeaea; border-radius: 12px; background: #fff; color: #333; }
+.status-chip { display: inline-flex; align-items: center; gap: 6px; padding: 2px 8px; border: 1px solid var(--color-chip-border); border-radius: 12px; background: var(--color-chip-bg); color: var(--color-chip-text); }
 .chip-text { line-height: 24px; }
-.status-sep { color: #999; }
-.statusbar :deep(.el-icon) { color: #666; }
-.statusbar :deep(.el-button) { color: #666; }
-.mini-meter { width: 80px; height: 6px; border-radius: 3px; background: #f1f5f9; overflow: hidden; display: inline-block; }
+.status-sep { color: var(--color-sep); }
+.statusbar :deep(.el-icon) { color: var(--color-statusbar-text); }
+.statusbar :deep(.el-button) { color: var(--color-statusbar-text); }
+.mini-meter { width: 80px; height: 6px; border-radius: 3px; background: var(--color-mini-meter-bg); overflow: hidden; display: inline-block; }
 .mini-meter-fill { display: block; height: 100%; width: 0%; transition: width 0.25s ease; }
-.metric-warn .chip-text { color: #d97706; }
-.metric-ok .chip-text { color: #333; }
+.metric-warn .chip-text { color: var(--color-metric-warn); }
+.metric-ok .chip-text { color: var(--color-metric-ok); }
 .popover-content { display: grid; gap: 6px; }
 .popover-title { font-weight: 600; font-size: 13px; }
-.popover-meta { font-size: 12px; color: #666; }
+.popover-meta { font-size: 12px; color: var(--color-statusbar-text); }
 .shortcut-text { font-size: 12px; }
 .shortcut-btn .shortcut-text { max-width: 0; opacity: 0; margin-left: 0; transition: max-width 0.2s ease, opacity 0.2s ease, margin 0.2s ease; overflow: hidden; white-space: nowrap; }
 .shortcut-btn:hover .shortcut-text { max-width: 120px; opacity: 1; margin-left: 6px; }

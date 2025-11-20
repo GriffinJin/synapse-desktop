@@ -25,5 +25,5 @@ const isAsideCollapsed = ref(false);
 .common-layout :deep(.el-container) { height: 100%; }
 .common-layout :deep(.el-header) { padding: 0; }
 .common-layout :deep(.el-main) { height: 100%; overflow: auto; }
-.common-layout :deep(.el-aside) { border-right: 1px solid #e6e6e6; }
+.common-layout :deep(.el-aside) { border-right: 1px solid var(--color-border); }
 </style>
