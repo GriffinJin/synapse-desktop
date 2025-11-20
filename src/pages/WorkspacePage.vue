@@ -85,7 +85,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue';
-import MainHeader from '../app/components/MainHeader.vue';
+import MainHeader from '../components/MainHeader.vue';
 import { ElMessage, ElNotification } from 'element-plus';
 
 type RepoInfo = {

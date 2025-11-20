@@ -1,23 +1,21 @@
 <template>
   <div class="common-layout">
     <el-container>
-      <el-header height="52px" class="titlebar"><AppHeader /></el-header>
+      <el-header><AppHeader /></el-header>
       <el-container>
-        <el-aside :width="isAsideCollapsed ? '64px' : '220px'" :class="['aside', { collapsed: isAsideCollapsed }]">
-          <SideBar />
-        </el-aside>
-        <el-main>
-          <router-view />
-        </el-main>
+        <el-aside><SideBar /></el-aside>
+        <el-main><router-view /></el-main>
       </el-container>
+      <el-footer height="28px" class="statusbar"><StatusBar /></el-footer>
     </el-container>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref } from 'vue';
-import AppHeader from './app/components/AppHeader.vue';
-import SideBar from './layout/SideBar.vue';
+import AppHeader from './components/GlobalHeader.vue';
+import SideBar from './components/SideBar.vue';
+import StatusBar from './components/StatusBar.vue';
 
 const isAsideCollapsed = ref(false);
 </script>

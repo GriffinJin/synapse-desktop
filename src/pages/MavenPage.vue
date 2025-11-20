@@ -60,7 +60,7 @@
 
 <script setup lang="ts">
 import { ref, computed } from 'vue';
-import MainHeader from '../app/components/MainHeader.vue';
+import MainHeader from '../components/MainHeader.vue';
 import { ElMessage } from 'element-plus';
 import { View } from '@element-plus/icons-vue';
 
