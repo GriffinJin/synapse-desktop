@@ -6,7 +6,7 @@
         <el-aside><GlobalAside /></el-aside>
         <el-main style="padding-top: 0px;"><router-view /></el-main>
       </el-container>
-      <el-footer style="height: 20px;padding-right: 0px;"><GlobalFooter /></el-footer>
+      <el-footer style="height: 24px;padding-right: 0px;"><GlobalFooter /></el-footer>
     </el-container>
   </div>
 </template>

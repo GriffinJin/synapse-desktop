@@ -1,12 +1,12 @@
 <template>
-  <el-row style="height: 24px;" align="center" justify="space-between">
-    <el-col :span="7">
+  <el-row align="center" justify="space-between">
+    <el-col :span="10" style="height: 24px;">
       <el-text style="margin-right: 20px;">{{ osText }}</el-text>
       <el-text style="margin-right: 20px;">{{ cpuText }}</el-text>
       <el-text style="margin-right: 20px;">{{ memText }}</el-text>
     </el-col>
-    <el-col :span="1" style="text-align: right;">
-      <el-button :icon="ArrowLeft" size="small" type="text" />
+    <el-col :span="1" style="text-align: right; height: 24px;">
+      <el-button :icon="ArrowLeft" size="small" type="text" style="height: 24px;"/>
     </el-col>
   </el-row>
 </template>

@@ -1,27 +1,44 @@
 <template>
   <div>
     <PageHeader title="Environments" subtitle="Show versions of Java, Python, and Maven" />
-    <div class="env-grid">
-      <div class="env-item">
-        <div class="env-label">Java</div>
-        <div class="env-value">{{ envJavaText }}</div>
-      </div>
-      <div class="env-item">
-        <div class="env-label">Python</div>
-        <div class="env-value">{{ envPythonText }}</div>
-      </div>
-      <div class="env-item">
-        <div class="env-label">Maven</div>
-        <div class="env-value">{{ envMavenText }}</div>
+      <el-row :gutter="20">
+        <el-col :span="8">
+          <el-card>
+            <template #header>
+              <div class="card-header">
+                <span>Java</span>
+              </div>
+            </template>
+            <div class="env-value">{{ envJavaText }}</div>
+          </el-card>
+        </el-col>
+        <el-col :span="8">
+          <el-card>
+            <template #header>
+              <div class="card-header">
+                <span>Python</span>
+              </div>
+            </template>
+            <div class="env-value">{{ envPythonText }}</div>
+          </el-card>
+        </el-col>
+        <el-col :span="8">
+          <el-card>
+            <template #header>
+              <div class="card-header">
+                <span>Maven</span>
+              </div>
+            </template>
+            <div class="env-value">{{ envMavenText }}</div>
+          </el-card>
+        </el-col>
+      </el-row>
+      <div class="toolbar">
+        <div class="toolbar-actions">
+          <el-button @click="refreshEnv" type="primary">Refresh</el-button>
+        </div>
       </div>
     </div>
-    <div class="toolbar" style="margin-top: 12px;">
-      <div></div>
-      <div class="toolbar-actions">
-        <el-button @click="refreshEnv" type="primary">Refresh</el-button>
-      </div>
-    </div>
-  </div>
 </template>
 
 <script setup lang="ts">
@@ -55,3 +72,22 @@ onMounted(async () => {
   await refreshEnv();
 });
 </script>
+
+<style>
+
+.toolbar {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 20px;
+}
+
+.toolbar-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.env-value {
+  font-size: 14px;
+  color: var(--el-text-color-secondary);
+}
+</style>
