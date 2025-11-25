@@ -1,22 +1,65 @@
 <template>
   <div>
     <PageHeader title="Workspace" subtitle="Select a directory to discover Git repositories" />
-    <el-row justify="space-between" style="margin-bottom: 20px;">
+    <el-row style="margin-bottom: 20px;">
       <el-col :span="6">
-        <el-select v-model="workspaceRoot" placeholder="Select a workspace" class="toolbar-search" filterable clearable
+        <el-select v-model="workspaceRoot" placeholder="Select a workspace" filterable clearable
           @change="onWorkspaceSelected">
           <el-option v-for="w in knownWorkspaces" :key="w.root" :label="w.root" :value="w.root" />
         </el-select>
       </el-col>
-      <el-col :span="6" style="text-align: end;">
-        <el-text>show details</el-text>
+      <el-col :span="6">
+        <el-button type="primary" @click="chooseWorkspaceRoot" :loading="scanning"
+          style="margin-left: 10px;">Browse</el-button>
+        <el-button v-if="repos.length" circle @click="refreshRepos" :loading="scanning" style="margin-left: 10px;"
+          :icon="RefreshRight"></el-button>
+      </el-col>
+      <el-col :span="12" style="text-align: end;">
         <el-switch v-model="workspaceViewMode" :active-value="'details'" :inactive-value="'operations'"
-          style="margin-left: 12px" />
+          active-text="Details" inactive-text="Operations" />
       </el-col>
     </el-row>
 
     <template v-if="repos.length">
-      <el-collapse v-if="workspaceViewMode === 'details'" v-model="activeRepoPanels">
+      <!-- Operations View -->
+      <div v-if="workspaceViewMode === 'operations'">
+        <el-table :data="repos" border row-key="path" @selection-change="onRepoSelectionChange">
+          <el-table-column type="selection" width="48" />
+          <el-table-column prop="name" label="Repository" min-width="200" />
+          <el-table-column label="Remote URL" min-width="320">
+            <template #default="{ row }">
+              <span>{{ row.origin || 'no remote' }}</span>
+            </template>
+          </el-table-column>
+          <el-table-column prop="branch" label="Branch" width="160">
+            <template #default="{ row }">
+              <span>{{ row.branch || 'unknown' }}</span>
+            </template>
+          </el-table-column>
+          <el-table-column label="Status" min-width="220">
+            <template #default="{ row }">
+              <div class="repo-flags">
+                <span v-if="row.unstaged" class="repo-flag flag-unstaged">Unstaged</span>
+                <span v-if="row.ahead" class="repo-flag flag-ahead">Ahead</span>
+                <span v-if="row.behind" class="repo-flag flag-behind">Behind</span>
+                <span v-if="!row.unstaged && !row.ahead && !row.behind" class="repo-flag flag-clean">Clean</span>
+              </div>
+            </template>
+          </el-table-column>
+          <el-table-column label="Operations" width="200">
+            <template #default="{ row }">
+              <el-tooltip content="git fetch & pull" placement="top">
+                 <el-button text @click="pullRepo(row.path)" :icon="Download"></el-button>
+              </el-tooltip>
+        
+              <el-button size="small" type="primary" plain @click="openRepoDetails(row.path)">Details</el-button>
+            </template>
+          </el-table-column>
+        </el-table>
+      </div>
+
+      <!-- Details View -->
+      <el-collapse v-else v-model="activeRepoPanels">
         <el-collapse-item v-for="repo in repos" :key="repo.path" :name="repo.path">
           <template #title>
             <div class="repo-summary">
@@ -35,13 +78,10 @@
             </div>
           </template>
           <div class="repo-detail">
-            <div class="repo-detail-row"><span class="label">Repository</span><span class="value">{{ repo.name
-            }}</span></div>
-            <div class="repo-detail-row"><span class="label">Path</span><span class="value">{{ repo.path }}</span>
+            <div class="repo-detail-row"><span class="label">Repository</span><span class="value">{{ repo.name }}</span>
             </div>
-            <div class="repo-detail-row"><span class="label">Branch</span><span class="value">{{ repo.branch ||
-              'unknown'
-            }}</span></div>
+            <div class="repo-detail-row"><span class="label">Path</span><span class="value">{{ repo.path }}</span></div>
+            <div class="repo-detail-row"><span class="label">Branch</span><span class="value">{{ repo.branch ||'unknown'}}</span></div>
             <div class="repo-detail-row"><span class="label">Status</span><span class="value">
                 <span v-if="repo.unstaged" class="repo-flag flag-unstaged">Unstaged</span>
                 <span v-if="repo.ahead" class="repo-flag flag-ahead">Ahead</span>
@@ -51,44 +91,16 @@
           </div>
         </el-collapse-item>
       </el-collapse>
-      <el-table v-else :data="repos" border row-key="path" @selection-change="onRepoSelectionChange">
-        <el-table-column type="selection" width="48" />
-        <el-table-column prop="name" label="Repository" min-width="200" />
-        <el-table-column label="Origin" min-width="320">
-          <template #default="{ row }">
-            <span>{{ row.origin || 'no remote' }}</span>
-          </template>
-        </el-table-column>
-        <el-table-column prop="branch" label="Branch" width="160">
-          <template #default="{ row }">
-            <span>{{ row.branch || 'unknown' }}</span>
-          </template>
-        </el-table-column>
-        <el-table-column label="Status" min-width="220">
-          <template #default="{ row }">
-            <div class="repo-flags">
-              <span v-if="row.unstaged" class="repo-flag flag-unstaged">Unstaged</span>
-              <span v-if="row.ahead" class="repo-flag flag-ahead">Ahead</span>
-              <span v-if="row.behind" class="repo-flag flag-behind">Behind</span>
-              <span v-if="!row.unstaged && !row.ahead && !row.behind" class="repo-flag flag-clean">Clean</span>
-            </div>
-          </template>
-        </el-table-column>
-        <el-table-column label="Operations" width="160">
-          <template #default="{ row }">
-            <el-button size="small" type="primary" plain @click="openRepoDetails(row.path)">Details</el-button>
-          </template>
-        </el-table-column>
-      </el-table>
     </template>
-    <el-empty v-else description="No repositories found"/>
+    <el-empty v-else description="No repositories found" />
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue';
+import { ref, onMounted } from 'vue';
 import PageHeader from '../components/PageHeader.vue';
-import { ElMessage, ElNotification } from 'element-plus';
+import { ElMessage, ElNotification, ElMessageBox } from 'element-plus';
+import { RefreshRight, Download } from '@element-plus/icons-vue';
 
 type RepoInfo = {
   name: string;
@@ -140,6 +152,59 @@ async function scanWorkspace() {
     }
   } catch (e: any) {
     ElNotification({ title: 'Scan Failed', message: e?.message || 'Failed to scan workspace', type: 'error', duration: 4500 });
+  } finally {
+    scanning.value = false;
+  }
+}
+
+async function refreshRepos() {
+  await scanWorkspace();
+}
+
+async function pullRepo(repoPath: string) {
+  try {
+    scanning.value = true;
+    await (window as any).workspace?.pullRepo?.(repoPath);
+    ElNotification({ title: 'Success', message: `Pulled ${repoPath}`, type: 'success', duration: 2500 });
+    // Refresh the repo data after pulling
+    await scanWorkspace();
+  } catch (e: any) {
+    ElNotification({ title: 'Error', message: e?.message || `Failed to pull ${repoPath}`, type: 'error', duration: 4500 });
+  } finally {
+    scanning.value = false;
+  }
+}
+
+async function batchPull() {
+  if (selectedRepoPaths.value.length === 0) {
+    ElMessage.warning('Please select at least one repository');
+    return;
+  }
+
+  try {
+    scanning.value = true;
+    const promises = selectedRepoPaths.value.map(path =>
+      (window as any).workspace?.pullRepo?.(path)
+    );
+
+    await Promise.all(promises);
+
+    ElNotification({
+      title: 'Success',
+      message: `Pulled ${selectedRepoPaths.value.length} repositories`,
+      type: 'success',
+      duration: 3500
+    });
+
+    // Refresh the repo data after pulling
+    await scanWorkspace();
+  } catch (e: any) {
+    ElNotification({
+      title: 'Error',
+      message: e?.message || 'Failed to pull some repositories',
+      type: 'error',
+      duration: 4500
+    });
   } finally {
     scanning.value = false;
   }
