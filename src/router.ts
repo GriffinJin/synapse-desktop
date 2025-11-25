@@ -2,12 +2,14 @@ import { createRouter, createWebHashHistory, type RouteRecordRaw } from 'vue-rou
 import WorkspacePage from './pages/WorkspacePage.vue';
 import MavenPage from './pages/MavenPage.vue';
 import EnvironmentsPage from './pages/EnvironmentsPage.vue';
+import DatabasePage from './pages/DatabasePage.vue';
 
 const routes: RouteRecordRaw[] = [
   { path: '/', redirect: '/workspace' },
   { path: '/workspace', name: 'workspace', component: WorkspacePage },
   { path: '/maven', name: 'maven', component: MavenPage },
   { path: '/env', name: 'env', component: EnvironmentsPage },
+  { path: '/database', name: 'database', component: DatabasePage },
 ];
 
 const router = createRouter({
