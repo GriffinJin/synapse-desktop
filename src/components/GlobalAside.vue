@@ -1,5 +1,5 @@
 <template>
-  <el-menu style="height: calc(100vh - 60px - 24px);" :default-active="activeMenu" @select="onSelectMenu">
+  <el-menu style="height: calc(100vh - 60px - 25px);" :default-active="activeMenu" @select="onSelectMenu">
     <el-menu-item index="workspace">
       <el-icon><Folder /></el-icon>
       <span>Workspace</span>
