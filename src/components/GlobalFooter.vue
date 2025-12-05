@@ -1,19 +1,15 @@
 <template>
-  <el-row align="center" justify="space-between">
-    <el-col :span="10" style="height: 24px;">
-      <el-text style="margin-right: 20px;">{{ osText }}</el-text>
-      <el-text style="margin-right: 20px;">{{ cpuText }}</el-text>
-      <el-text style="margin-right: 20px;">{{ memText }}</el-text>
-    </el-col>
-    <el-col :span="1" style="text-align: right; height: 24px;">
-      <el-button :icon="ArrowLeft" size="small" type="text" style="height: 24px;"/>
-    </el-col>
-  </el-row>
+  <div class="footer-content">
+    <div class="footer-stats">
+      <span class="footer-item">{{ osText }}</span>
+      <span class="footer-item">{{ cpuText }}</span>
+      <span class="footer-item">{{ memText }}</span>
+    </div>
+  </div>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue';
-import { ArrowLeft } from '@element-plus/icons-vue';
 
 type SystemStats = {
   os: { platform: string; release: string; arch: string };
@@ -71,5 +67,25 @@ const memText = computed(() => {
   const total = toGB(s.memory.totalBytes);
   return `Mem: ${used.toFixed(1)} / ${total.toFixed(1)} GB (${s.memory.percent.toFixed(0)}%)`;
 });
-
 </script>
+
+<style scoped>
+.footer-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  height: 100%;
+}
+
+.footer-stats {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+}
+
+.footer-item {
+  font-size: 11px;
+  color: #fff;
+}
+</style>

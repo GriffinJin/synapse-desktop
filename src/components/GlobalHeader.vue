@@ -1,35 +1,70 @@
 <template>
-  <el-row align="middle" style="height: 60px;" justify="space-between">
-    <el-col :span="6">Synapse Desktop</el-col>
-    <el-col :span="6" style="text-align: right;">
-        <el-button circle :icon="Search" @click="handleOpenSearch" :title="'Search'" />
-        <el-button circle :icon="Bell" @click="handleOpenNotifications" :title="'Notifications'" />
-        <el-button circle :icon="Setting" @click="handleOpenSettings" :title="'Open settings'" />
-    </el-col>
-  </el-row>
+  <div class="header-content">
+    <div class="header-title">Synapse Desktop</div>
+    <div class="header-actions">
+      <vscode-button appearance="icon" @click="handleOpenSearch" title="Search">
+        <span class="codicon codicon-search"></span>
+      </vscode-button>
+      <vscode-button appearance="icon" @click="handleOpenNotifications" title="Notifications">
+        <span class="codicon codicon-bell"></span>
+      </vscode-button>
+      <vscode-button appearance="icon" @click="handleOpenSettings" title="Settings">
+        <span class="codicon codicon-settings-gear"></span>
+      </vscode-button>
+    </div>
+  </div>
 </template>
 
 <script setup lang="ts">
-import { Search, Setting, Bell } from '@element-plus/icons-vue';
-import { ElMessageBox } from 'element-plus';
-
 function handleOpenSearch() {
-ElMessageBox.alert('搜索', '提示', {
-  confirmButtonText: '确定'
-});
+  alert('Search - Coming soon');
 }
 
 function handleOpenNotifications() {
-  console.log('handleOpenNotifications');
-  ElMessageBox.alert('信息', '提示', {
-  confirmButtonText: '确定'
-});
+  alert('Notifications - Coming soon');
 }
 
 function handleOpenSettings() {
-  console.log('handleOpenSettings');
-  ElMessageBox.alert('设置', '提示', {
-  confirmButtonText: '确定'
-});
+  alert('Settings - Coming soon');
 }
 </script>
+
+<style scoped>
+.header-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  height: 100%;
+  padding-left: 68px; /* Add space for macOS traffic lights */
+}
+
+.header-title {
+  font-weight: 600;
+  font-size: 13px;
+  color: var(--vscode-text);
+}
+
+.header-actions {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+}
+
+/* Codicon font for icons */
+.codicon {
+  font-family: codicon;
+  font-size: 16px;
+}
+
+.codicon-search::before { content: '\eB65'; }
+.codicon-bell::before { content: '\eB27'; }
+.codicon-settings-gear::before { content: '\eB52'; }
+
+/* Remove padding on non-macOS platforms */
+@media (not (platform: macOS)) {
+  .header-content {
+    padding-left: 0;
+  }
+}
+</style>

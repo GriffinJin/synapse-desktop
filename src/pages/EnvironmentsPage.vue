@@ -1,44 +1,26 @@
 <template>
   <div>
     <PageHeader title="Environments" subtitle="Show versions of Java, Python, and Maven" />
-      <el-row :gutter="20">
-        <el-col :span="8">
-          <el-card>
-            <template #header>
-              <div class="card-header">
-                <span>Java</span>
-              </div>
-            </template>
-            <div class="env-value">{{ envJavaText }}</div>
-          </el-card>
-        </el-col>
-        <el-col :span="8">
-          <el-card>
-            <template #header>
-              <div class="card-header">
-                <span>Python</span>
-              </div>
-            </template>
-            <div class="env-value">{{ envPythonText }}</div>
-          </el-card>
-        </el-col>
-        <el-col :span="8">
-          <el-card>
-            <template #header>
-              <div class="card-header">
-                <span>Maven</span>
-              </div>
-            </template>
-            <div class="env-value">{{ envMavenText }}</div>
-          </el-card>
-        </el-col>
-      </el-row>
-      <div class="toolbar">
-        <div class="toolbar-actions">
-          <el-button @click="refreshEnv" type="primary">Refresh</el-button>
-        </div>
+    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-bottom: 20px;">
+      <div class="card">
+        <div class="card-header">Java</div>
+        <div class="card-body env-value">{{ envJavaText }}</div>
+      </div>
+      <div class="card">
+        <div class="card-header">Python</div>
+        <div class="card-body env-value">{{ envPythonText }}</div>
+      </div>
+      <div class="card">
+        <div class="card-header">Maven</div>
+        <div class="card-body env-value">{{ envMavenText }}</div>
       </div>
     </div>
+    <div class="toolbar">
+      <div class="toolbar-actions">
+        <vscode-button appearance="primary" @click="refreshEnv">Refresh</vscode-button>
+      </div>
+    </div>
+  </div>
 </template>
 
 <script setup lang="ts">
@@ -73,21 +55,10 @@ onMounted(async () => {
 });
 </script>
 
-<style>
-
-.toolbar {
-  display: flex;
-  justify-content: flex-end;
-  margin-top: 20px;
-}
-
-.toolbar-actions {
-  display: flex;
-  gap: 8px;
-}
-
+<style scoped>
 .env-value {
   font-size: 14px;
-  color: var(--el-text-color-secondary);
+  color: var(--vscode-text);
+  font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
 }
 </style>

@@ -2,67 +2,95 @@
   <div>
     <PageHeader title="Maven Configuration" subtitle="Configure and Preview Maven" />
     <div class="toolbar">
-      <el-input v-model="search" placeholder="Search by file name" clearable class="toolbar-search" />
+      <vscode-text-field v-model="search" placeholder="Search by file name" class="toolbar-search" />
       <div class="toolbar-actions">
-        <el-button @click="refresh" :disabled="!hasM2">Refresh</el-button>
-        <el-button type="primary" @click="openAddDialog" :disabled="!hasM2">Add</el-button>
+        <vscode-button @click="refresh" :disabled="!hasM2">Refresh</vscode-button>
+        <vscode-button appearance="primary" @click="openAddDialog" :disabled="!hasM2">Add</vscode-button>
       </div>
     </div>
-    <el-table :data="filteredFiles" border>
-      <el-table-column prop="name" label="Name" min-width="220" />
-      <el-table-column prop="relativePath" label="Relative Path" min-width="280" />
-      <el-table-column label="Status" width="140">
-        <template #default="{ row }">
-          <el-tag :type="isActiveConfig(row) ? 'success' : activeConfigPath ? 'info' : 'warning'">
-            {{ isActiveConfig(row) ? 'Enabled' : activeConfigPath ? 'Disabled' : 'Unknown' }}
-          </el-tag>
-        </template>
-      </el-table-column>
-      <el-table-column prop="size" label="Size" width="120">
-        <template #default="{ row }">
-          <span v-if="typeof row.size === 'number'">{{ formatSize(row.size) }}</span>
-          <span v-else>-</span>
-        </template>
-      </el-table-column>
-      <el-table-column label="Actions" width="160">
-        <template #default="{ row }">
-          <el-tooltip content="Preview" placement="top">
-            <span>
-              <el-button size="small" type="primary" plain circle :icon="View" :disabled="!isXml(row.name)" @click="preview(row)" />
-            </span>
-          </el-tooltip>
-        </template>
-      </el-table-column>
-    </el-table>
-    <el-empty v-if="filteredFiles.length === 0" description="No files found" />
-    <el-dialog v-model="previewVisible" title="Preview XML" width="60%">
-      <pre class="code">{{ content }}</pre>
-      <template #footer>
-        <el-button @click="previewVisible = false">Close</el-button>
-      </template>
-    </el-dialog>
-    <el-dialog v-model="addVisible" title="Add XML File" width="600px">
-      <el-form :model="addForm" label-width="100px">
-        <el-form-item label="File Name">
-          <el-input v-model="addForm.name" placeholder="example.xml" />
-        </el-form-item>
-        <el-form-item label="Content">
-          <el-input v-model="addForm.content" type="textarea" :autosize="{ minRows: 6, maxRows: 12 }" />
-        </el-form-item>
-      </el-form>
-      <template #footer>
-        <el-button @click="addVisible = false">Cancel</el-button>
-        <el-button type="primary" @click="submitAdd" :disabled="!hasM2">Create</el-button>
-      </template>
-    </el-dialog>
+    
+    <div v-if="filteredFiles.length > 0" class="data-grid-container">
+      <table class="vscode-table">
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Relative Path</th>
+            <th style="width: 140px;">Status</th>
+            <th style="width: 120px;">Size</th>
+            <th style="width: 160px;">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="row in filteredFiles" :key="row.absolutePath">
+            <td>{{ row.name }}</td>
+            <td>{{ row.relativePath }}</td>
+            <td>
+              <vscode-tag v-if="isActiveConfig(row)" class="status-tag success">Enabled</vscode-tag>
+              <vscode-tag v-else-if="activeConfigPath" class="status-tag info">Disabled</vscode-tag>
+              <vscode-tag v-else class="status-tag warning">Unknown</vscode-tag>
+            </td>
+            <td>
+              <span v-if="typeof row.size === 'number'">{{ formatSize(row.size) }}</span>
+              <span v-else>-</span>
+            </td>
+            <td>
+              <vscode-button 
+                appearance="icon" 
+                :disabled="!isXml(row.name)" 
+                @click="preview(row)"
+                title="Preview"
+              >
+                <span class="codicon codicon-eye"></span>
+              </vscode-button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <div v-else class="empty-state">
+      <div class="empty-state-icon">📄</div>
+      <div class="empty-state-text">No files found</div>
+    </div>
+    
+    <!-- Preview Modal -->
+    <div v-if="previewVisible" class="modal-overlay" @click="previewVisible = false">
+      <div class="modal-container" @click.stop style="width: 60%; max-width: 800px;">
+        <div class="modal-header">Preview XML</div>
+        <div class="modal-body">
+          <pre class="code-preview">{{ content }}</pre>
+        </div>
+        <div class="modal-footer">
+          <vscode-button @click="previewVisible = false">Close</vscode-button>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Add File Modal -->
+    <div v-if="addVisible" class="modal-overlay" @click="addVisible = false">
+      <div class="modal-container" @click.stop style="width: 600px;">
+        <div class="modal-header">Add XML File</div>
+        <div class="modal-body">
+          <div class="form-group">
+            <label>File Name</label>
+            <vscode-text-field v-model="addForm.name" placeholder="example.xml" />
+          </div>
+          <div class="form-group">
+            <label>Content</label>
+            <vscode-text-area v-model="addForm.content" :rows="10" resize="vertical" />
+          </div>
+        </div>
+        <div class="modal-footer">
+          <vscode-button @click="addVisible = false">Cancel</vscode-button>
+          <vscode-button appearance="primary" @click="submitAdd" :disabled="!hasM2">Create</vscode-button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, computed } from 'vue';
 import PageHeader from '../components/PageHeader.vue';
-import { ElMessage } from 'element-plus';
-import { View } from '@element-plus/icons-vue';
 
 type FileMeta = {
   name: string;
@@ -131,7 +159,7 @@ async function refresh() {
     files.value = await window.m2.listFiles();
     await refreshActiveConfig();
   } catch (e) {
-    ElMessage.error('Failed to refresh');
+    alert('Failed to refresh');
   }
 }
 function openAddDialog() {
@@ -141,7 +169,7 @@ function openAddDialog() {
 async function submitAdd() {
   const raw = addForm.value.name.trim();
   if (!raw) {
-    ElMessage.warning('File name is required');
+    alert('File name is required');
     return;
   }
   const name = /\.xml$/i.test(raw) ? raw : `${raw}.xml`;
@@ -150,7 +178,36 @@ async function submitAdd() {
     addVisible.value = false;
     await refresh();
   } catch (e: any) {
-    ElMessage.error(e?.message || 'Failed to create file');
+    alert(e?.message || 'Failed to create file');
   }
 }
 </script>
+
+<style scoped>
+.code-preview {
+  background-color: var(--vscode-bg);
+  color: var(--vscode-text);
+  padding: 16px;
+  border-radius: 2px;
+  overflow-x: auto;
+  font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+  font-size: 12px;
+  line-height: 1.5;
+  max-height: 60vh;
+  overflow-y: auto;
+}
+
+.form-group {
+  margin-bottom: 16px;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: 600;
+  color: var(--vscode-text);
+  font-size: 13px;
+}
+
+.codicon-eye::before { content: '\eb4a'; }
+</style>
